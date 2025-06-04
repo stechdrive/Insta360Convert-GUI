@@ -77,6 +77,7 @@ To use this application, you will need the following software and files:
     *   `ffmpeg_worker.py` (FFmpeg processing worker script)
     *   `constants.py` (Configuration values definition file)
     *   `tooltip_utils.py` (Tooltip display utility)
+    *   `update_checker.py`(Check GitHub Latest Relese)
     *   `insta360convert.bat` (Optional, simple launch batch file for Windows)
 
     All these Python files (`.py`) and the batch file (`.bat`, if used) should be placed in the **same folder**.
@@ -97,6 +98,7 @@ To use this application, you will need the following software and files:
     *   `ffmpeg_worker.py` (FFmpeg 処理ワーカースクリプト)
     *   `constants.py` (設定値定義ファイル)
     *   `tooltip_utils.py` (ツールチップ表示ユーティリティ)
+    *   `update_checker.py`(GitHubに最新バージョンがあるか確認する)
     *   `insta360convert.bat` (Windows 用の簡単起動バッチファイル、任意)
 
     これらのファイルはすべて同じフォルダ内に配置してください。
@@ -174,11 +176,11 @@ Processing will begin with settings close to the defaults. For more detailed con
 **4.1. File Settings**  
 
 *   **Input Video File:**
-        *   Click "Browse..." to select the 360° video file (.mp4, .mov, etc., in equirectangular format).
-        *   Upon selection, video resolution, duration, and FPS are read and displayed in the "Application Log" tab.
+    *   Click "Browse..." to select the 360° video file (.mp4, .mov, etc., in equirectangular format).
+    *   Upon selection, video resolution, duration, and FPS are read and displayed in the "Application Log" tab.
 *   **Output Folder:**
-        *   Specify the folder for the output files.
-        *   Automatically set to the input video's folder upon input selection; can be changed using "Browse...".
+    *   Specify the folder for the output files.
+    *   Automatically set to the input video's folder upon input selection; can be changed using "Browse...".
 
 **4.2. Viewpoint Settings (Pitch/Yaw/FOV)**
 
@@ -186,39 +188,39 @@ This entire section is provided by the "Advanced Yaw Selector" module.
 
 **Left Panel:**  
 *   **Add/Remove Pitch Angle:**
-        *   Select a pitch angle from the dropdown list and click "Add" to add it to the "Output Pitch Angle List". Up to 7 pitch angles can be registered.
-        *   Click "Remove" to delete the currently selected pitch angle from the list (at least one must remain).
+    *   Select a pitch angle from the dropdown list and click "Add" to add it to the "Output Pitch Angle List". Up to 7 pitch angles can be registered.
+    *   Click "Remove" to delete the currently selected pitch angle from the list (at least one must remain).
 *   **Output Pitch Angle List:**
-        *   Displays currently configured pitch angles. Selecting an item in this list updates the right-side controls and 3D preview with its detailed settings (pitch value, FOV, number of yaw divisions, yaw selections).
+    *   Displays currently configured pitch angles. Selecting an item in this list updates the right-side controls and 3D preview with its detailed settings (pitch value, FOV, number of yaw divisions, yaw selections).
 *   **Reset Buttons:**
-        *   "P.Reset": Resets the pitch angle list to the default settings (e.g., -30,0,30 degrees).
-        *   "FOV.Rst": Resets the FOV of the currently selected pitch angle to its default value (100 degrees).
+    *   "P.Reset": Resets the pitch angle list to the default settings (e.g., -30,0,30 degrees).
+    *   "FOV.Rst": Resets the FOV of the currently selected pitch angle to its default value (100 degrees).
 *   **Yaw Selection Buttons:**
-        *   Displays buttons for yaw angles based on the "Number of Horizontal Viewpoints" set for the currently selected pitch.
-        *   Clicking each button toggles the corresponding yaw angle for output (on/off). The button color corresponds to the viewpoint color in the 3D preview.
+    *   Displays buttons for yaw angles based on the "Number of Horizontal Viewpoints" set for the currently selected pitch.
+    *   Clicking each button toggles the corresponding yaw angle for output (on/off). The button color corresponds to the viewpoint color in the 3D preview.
 
 **Right Panel:**
 
 *   **Pitch Angle Adjust Slider/Entry:**
-        *   Adjust the precise value of the selected pitch angle from the list using the slider or by numerical input (-90° to +90°). Changes are reflected in the list.
+    *   Adjust the precise value of the selected pitch angle from the list using the slider or by numerical input (-90° to +90°). Changes are reflected in the list.
 *   **FOV Adjust Slider/Entry:**
-        *   Adjust the Field of View (FOV) for the selected pitch angle using the slider or numerical input (30° to 120°).
-        *   *For photogrammetry, an FOV around 90°-100° often provides a good balance between distortion and overlap, but adjust based on the subject and shooting method.*
+    *   Adjust the Field of View (FOV) for the selected pitch angle using the slider or numerical input (30° to 120°).
+    *   *For photogrammetry, an FOV around 90°-100° often provides a good balance between distortion and overlap, but adjust based on the subject and shooting method.*
 *   **Number of Horizontal Viewpoints Slider:**
-        *   For the selected pitch angle, specify how many viewpoints (yaw angles) to generate horizontally (how many divisions of a circle) within a range of 1 to 12.
-        *   Changing this value resets all yaw selections for that pitch to "selected", and the yaw selection button group below it is updated.
+    *   For the selected pitch angle, specify how many viewpoints (yaw angles) to generate horizontally (how many divisions of a circle) within a range of 1 to 12.
+    *   Changing this value resets all yaw selections for that pitch to "selected", and the yaw selection button group below it is updated.
 *   **3D Preview Canvas:**
-        *   Visually displays the current viewpoint settings on a 3D sphere.
-        *   **Controls:**
-            *   **Left-drag:** Rotate the sphere to view from different angles.
-            *   **Right-click (empty space):** Toggle selection of the viewpoint visually closest to the click location.
-            *   **Right-click (viewpoint label):** Toggle selection of the specific yaw angle associated with the label.
-        *   **Display:**
-            *   Selected viewpoints are shown as colored cones (pyramid-shaped) representing the FOV. Colors correspond to the yaw buttons.
-            *   FOV planes of unselected viewpoints may be shown semi-transparently or as outlines.
-            *   The top-left corner displays info: current pitch, its FOV, number of divisions, and total selected viewpoints.
-            *   A simple operation guide ("Left-drag:Rotate Right-click:Toggle VP") is shown in the top-right.
-            *   An equator line for the current pitch is drawn as a dotted line on the sphere.
+    *   Visually displays the current viewpoint settings on a 3D sphere.
+    *   **Controls:**
+        *   **Left-drag:** Rotate the sphere to view from different angles.
+        *   **Right-click (empty space):** Toggle selection of the viewpoint visually closest to the click location.
+        *   **Right-click (viewpoint label):** Toggle selection of the specific yaw angle associated with the label.
+    *   **Display:**
+        *   Selected viewpoints are shown as colored cones (pyramid-shaped) representing the FOV. Colors correspond to the yaw buttons.
+        *   FOV planes of unselected viewpoints may be shown semi-transparently or as outlines.
+        *   The top-left corner displays info: current pitch, its FOV, number of divisions, and total selected viewpoints.
+        *   A simple operation guide ("Left-drag:Rotate Right-click:Toggle VP") is shown in the top-right.
+        *   An equator line for the current pitch is drawn as a dotted line on the sphere.
 
 **4.3. Output Settings**  
 
@@ -284,49 +286,49 @@ The application window includes a menu bar at the top (typically "Help" on Windo
 
 **4.1. ファイル設定**  
 *   **入力動画ファイル:**
-        *   「参照...」からエクイレクタングラー形式の360°動画ファイル(.mp4, .mov等)を選択。
-        *   選択すると、動画の解像度、再生時間、FPSが読み込まれ「アプリケーションログ」に表示。
+    *   「参照...」からエクイレクタングラー形式の360°動画ファイル(.mp4, .mov等)を選択。
+    *   選択すると、動画の解像度、再生時間、FPSが読み込まれ「アプリケーションログ」に表示。
 *   **出力フォルダ:**
-        *   変換後のファイルの出力先を指定。
-        *   入力動画選択時に同じフォルダが自動設定。変更は「参照...」から。
+    *   変換後のファイルの出力先を指定。
+    *   入力動画選択時に同じフォルダが自動設定。変更は「参照...」から。
 
 **4.2. 視点設定(ピッチ・ヨー・FOV)**  
     このセクションは「Advanced Yaw Selector」モジュールで提供。
 
 **左側パネル:**  
 *   **ピッチ角追加/削除:**
-        *   ドロップダウンからピッチ角を選び「追加」でリストに追加（最大7個）。
-        *   「削除」でリストから選択中のピッチ角を削除（最低1つは残る）。
+    *   ドロップダウンからピッチ角を選び「追加」でリストに追加（最大7個）。
+    *   「削除」でリストから選択中のピッチ角を削除（最低1つは残る）。
 *   **出力するピッチ角リスト:**
-        *   設定済みのピッチ角を表示。選択すると右側のコントロールと3Dプレビューに詳細設定（ピッチ値、FOV、水平視点数、ヨー角選択）が反映。
+    *   設定済みのピッチ角を表示。選択すると右側のコントロールと3Dプレビューに詳細設定（ピッチ値、FOV、水平視点数、ヨー角選択）が反映。
 *   **リセットボタン:**
-        *   「P.Reset」: ピッチ角リストをデフォルト（例: -30,0,30度）にリセット。
-        *   「FOV.Rst」: 選択中ピッチ角のFOVをデフォルト値（100度）にリセット。
+    *   「P.Reset」: ピッチ角リストをデフォルト（例: -30,0,30度）にリセット。
+    *   「FOV.Rst」: 選択中ピッチ角のFOVをデフォルト値（100度）にリセット。
 *   **ヨー角選択ボタン:**
-        *   選択中ピッチ角の「水平視点数」に基づきヨー角ボタンを表示。
-        *   クリックで対応ヨー角の選択(オン)/非選択(オフ)を切替。ボタン色は3Dプレビューの視点色と連動。
+    *   選択中ピッチ角の「水平視点数」に基づきヨー角ボタンを表示。
+    *   クリックで対応ヨー角の選択(オン)/非選択(オフ)を切替。ボタン色は3Dプレビューの視点色と連動。
 
 **右側パネル:**
 *   **ピッチ角調整スライダー/入力欄:**
-        *   選択中ピッチ角の値をスライダーまたは数値入力で調整(-90°~+90°)。変更はリストにも反映。
+    *   選択中ピッチ角の値をスライダーまたは数値入力で調整(-90°~+90°)。変更はリストにも反映。
 *   **FOV 調整スライダー/入力欄:**
-        *   選択中ピッチ角の視野角(FOV)をスライダーまたは数値入力で調整(30°~120°)。
-        *   *フォトグラメトリ用途では、90°~100°程度が歪みとオーバーラップのバランスが良いとされますが、対象物や撮影方法によって調整してください。*
+    *   選択中ピッチ角の視野角(FOV)をスライダーまたは数値入力で調整(30°~120°)。
+    *   *フォトグラメトリ用途では、90°~100°程度が歪みとオーバーラップのバランスが良いとされますが、対象物や撮影方法によって調整してください。*
 *   **水平視点数スライダー:**
-        *   選択中ピッチ角に対し、水平方向の視点(ヨー角)を何分割で生成するかを1~12で指定。
-        *   値を変更すると、そのピッチ角のヨー角は全選択状態になり、ヨー角選択ボタン群も更新。
+    *   選択中ピッチ角に対し、水平方向の視点(ヨー角)を何分割で生成するかを1~12で指定。
+    *   値を変更すると、そのピッチ角のヨー角は全選択状態になり、ヨー角選択ボタン群も更新。
 *   **3D プレビューキャンバス:**
-        *   現在の視点設定を3D球体上に表示。
-        *   **操作:**
-            *   左ドラッグ: 球体を回転。
-            *   右クリック(何もない空間): クリック位置に最も近い視点の選択/非選択をトグル。
-            *   右クリック(視点ラベル): ラベルのヨー角の選択/非選択をトグル。
-        *   **表示:**
-            *   選択視点はFOVを表す錐体(ピラミッド型)として色付き表示（色はヨー角ボタンと連動）。
-            *   非選択視点のFOV平面は半透明または輪郭のみ表示。
-            *   左上に現在の選択ピッチ、FOV、水平分割数、総視点数を表示。
-            *   右上に「左ドラッグ:回転 右クリック:視点選択/解除」の操作ガイド表示。
-            *   球体上に現在選択ピッチの赤道線を点線描画。
+    *   現在の視点設定を3D球体上に表示。
+    *   **操作:**
+        *   左ドラッグ: 球体を回転。
+        *   右クリック(何もない空間): クリック位置に最も近い視点の選択/非選択をトグル。
+        *   右クリック(視点ラベル): ラベルのヨー角の選択/非選択をトグル。
+    *   **表示:**
+        *   選択視点はFOVを表す錐体(ピラミッド型)として色付き表示（色はヨー角ボタンと連動）。
+        *   非選択視点のFOV平面は半透明または輪郭のみ表示。
+        *   左上に現在の選択ピッチ、FOV、水平分割数、総視点数を表示。
+        *   右上に「左ドラッグ:回転 右クリック:視点選択/解除」の操作ガイド表示。
+        *   球体上に現在選択ピッチの赤道線を点線描画。
 
 **4.3. 出力設定**
 
@@ -361,10 +363,10 @@ The application window includes a menu bar at the top (typically "Help" on Windo
         *   JPEG形式の静止画ファイルを出力（非可逆圧縮でファイルサイズは抑えられるが画質はPNGに劣る）元の動画の状態や求める品質がある程度でいい場合、ドラフトの場合など十分にアリ。
         *   **抽出間隔(秒):** PNGと同様。
         *   **品質(1-100):** JPEG品質を1(低品質・小)～100(高品質・大)で指定。デフォルト`90`。
-        *   **動画(HEVC/H.265):**
-            *   各視点を個別の動画ファイル(H.265コーデック, MP4コンテナ)として出力。音声なし。
-            *   **Preset:** エンコード速度と品質のバランス指定(例: `medium`, `slow`)。デフォルト`medium`。
-            *   **CQ/CRF:** エンコード品質指定。数値が低いほど高品質(ファイルサイズ大)。0～51の範囲、通常15～28程度。デフォルト`18`(CUDAはCQ, CPUはCRFとして扱われる)。
+    *   **動画(HEVC/H.265):**
+        *   各視点を個別の動画ファイル(H.265コーデック, MP4コンテナ)として出力。音声なし。
+        *   **Preset:** エンコード速度と品質のバランス指定(例: `medium`, `slow`)。デフォルト`medium`。
+        *   **CQ/CRF:** エンコード品質指定。数値が低いほど高品質(ファイルサイズ大)。0～51の範囲、通常15～28程度。デフォルト`18`(CUDAはCQ, CPUはCRFとして扱われる)。
 
 **4.4. コントロールと進捗**
 *   **並列処理数:** 同時に処理する視点の数(FFmpegプロセス数)を指定。PCのCPUコア数に応じ1から最大論理コア数まで選択可。デフォルト値は「出力するピッチ角リスト」のピッチ角総数(PC論理コア数上限)に自動設定され、ピッチ角数変更に追随。値を大きくすると処理が速くなる可能性があるがCPU負荷やメモリ使用量が増加。最適値は環境依存のため手動調整も可。
