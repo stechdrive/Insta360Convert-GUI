@@ -1,0 +1,79 @@
+# Python bytecode and compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+build/
+develop-eggs/
+dist/
+eggs/
+*.egg-info/
+*.egg
+wheels/
+*.spec  # PyInstaller spec file (もし将来的に実行ファイル作成に使う場合)
+
+# Virtual environment folders
+.venv/
+venv/
+ENV/
+env/
+virtualenv/
+# Windows specific virtualenv folders (often created by IDEs)
+Include/
+Lib/
+Scripts/
+# macOS/Linux specific virtualenv folders (often created by IDEs)
+# bin/ # bin/はffmpeg実行ファイルなどを置く可能性があるのでコメントアウト、必要なら有効化
+# lib/ # 同上
+# include/ # 同上
+
+# IDE / Editor specific files
+.idea/          # IntelliJ IDEA, PyCharm
+.vscode/        # Visual Studio Code
+*.sublime-project
+*.sublime-workspace
+nbproject/      # NetBeans
+*.project       # Eclipse (PyDev)
+.project        # Eclipse
+.settings/      # Eclipse
+*.tmproj        # TextMate
+*.komodoproject # Komodo Edit
+*.bak           # Backup files often created by editors
+*~              # Backup files often created by editors (e.g., Gedit, Kate)
+*.swp           # Vim swap files
+*.swo           # Vim swap files
+
+# OS generated files
+.DS_Store       # macOS
+Thumbs.db       # Windows
+ehthumbs.db     # Windows
+Desktop.ini     # Windows
+
+# Log files (もしアプリケーションがログファイルを生成する場合)
+# *.log
+# logs/
+
+# Test output (もしテストフレームワークを使用する場合)
+# .pytest_cache/
+# .tox/
+# htmlcov/
+# .coverage
+# nosetests.xml
+# coverage.xml
+
+# Local settings files (もしユーザー固有の設定ファイルがある場合)
+# local_settings.py
+# .env
+
+# Jupyter Notebook checkpoints (もし使用する場合)
+.ipynb_checkpoints
+
+# mypy cache (もし型チェックにmypyを使用する場合)
+.mypy_cache/
+
+# Ruff cache (もしリンター/フォーマッッターにRuffを使用する場合)
+.ruff_cache/
+
+# pytest cache (もしテストにpytestを使用する場合)
+.pytest_cache/
