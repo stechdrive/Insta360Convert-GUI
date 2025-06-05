@@ -1,13 +1,13 @@
-# Insta360Convert GUI
+# Insta360Convert GUI v2.2.0
 
-**Insta360Convert GUI** is a user-friendly desktop application designed to extract multiple defined perspective views (defined by pitch, yaw, and Field of View) from 360° equirectangular videos and export them as video clips or image sequences. It's a versatile tool for photogrammetry, VR content creation, visual effects, and various other video production workflows.
+**Insta360Convert GUI** is a user-friendly desktop application designed to extract multiple defined perspective views (defined by pitch, yaw, and Field of View) from 360° equirectangular videos and export them as video clips or image sequences. It's a versatile tool for photogrammetry, VR content creation, visual effects, and various other video production workflows. This application supports English and Japanese user interfaces.
 
-**⚠️ Important Prerequisites: This application requires Python and FFmpeg to be installed on your system. Please see the "Requirements" section below for details.**
+**⚠️ Important Prerequisites: This application requires Python (3.9 or newer) and FFmpeg to be installed on your system, along with Tkinter (8.6 or newer, usually included with Python). Please see the "Requirements" section below for details.**
 
 **[日本語]**
-**Insta360Convert GUI** は、360°動画 (エクイレクタングラー形式)から、指定した複数の視点(ピッチ角、ヨー角、視野角)を切り出して、動画または静止画シーケンスとして出力するためのGUIアプリケーションです。フォトグラメトリやVRコンテンツ制作、映像作品の素材作成など、幅広い用途にご利用いただけます。
+**Insta360Convert GUI v2.2.0** は、360°動画 (エクイレクタングラー形式)から、指定した複数の視点(ピッチ角、ヨー角、視野角)を切り出して、動画または静止画シーケンスとして出力するためのGUIアプリケーションです。フォトグラメトリやVRコンテンツ制作、映像作品の素材作成など、幅広い用途にご利用いただけます。本アプリケーションは日本語と英語のユーザーインターフェースに対応しています。
 
-**⚠️ 事前の重要事項: このアプリケーションを使用するには、お使いのシステムに Python と FFmpeg がインストールされている必要があります。詳細は下記の「1. 準備するもの」セクションをご覧ください。**
+**⚠️ 事前の重要事項: このアプリケーションを使用するには、お使いのシステムに Python (3.9 以降) と FFmpeg がインストールされており、Tkinter (8.6 以降、通常Pythonに同梱) が利用可能である必要があります。詳細は下記の「1. 準備するもの」セクションをご覧ください。**
 
 
 ## Downloads / ダウンロード
@@ -39,6 +39,7 @@ Insta360 カメラで撮影した独自の形式 (.insv など)の動画は、�
 *   **Flexible Output:** Export as MP4 (H.265/HEVC) video clips or PNG/JPEG image sequences.
 *   **CUDA Acceleration:** Supports NVIDIA CUDA for hardware-accelerated decoding and encoding (with compatibility testing for high-resolution inputs).
 *   **Batch Processing:** Process all defined viewpoints in parallel.
+*   **Multilingual UI:** User interface available in English and Japanese, with on-the-fly language switching.
 *   **Version & Update Check:** Displays the current application version and allows checking for newer versions directly from GitHub.
 *   **Cross-Platform:** Built with Python and Tkinter, designed to work on Windows, macOS, and Linux (with dependencies met).
 *   **Detailed Logging:** Application and FFmpeg logs are available in separate tabs for easy troubleshooting.
@@ -49,15 +50,17 @@ Insta360 カメラで撮影した独自の形式 (.insv など)の動画は、�
 *   **柔軟な出力形式:** MP4 (H.265/HEVC) 動画または PNG/JPEG 静止画シーケンスとして出力。
 *   **CUDAアクセラレーション:** NVIDIA CUDAによるハードウェアアクセラレーションに対応（高解像度入力時の互換性テスト付き）。
 *   **バッチ処理:** 定義された全ての視点を並列処理。
-*   **バージョン表示とアップデート確認:** 現在のアプリケーションバージョンを表示し、GitHubから新しいバージョンを確認する機能。 
+*   **多言語UI:** 日本語と英語のユーザーインターフェースに対応し、実行中に言語切り替え可能。
+*   **バージョン表示とアップデート確認:** 現在のアプリケーションバージョンを表示し、GitHubから新しいバージョンを確認する機能。
 *   **クロスプラットフォーム:** PythonとTkinterで構築され、Windows, macOS, Linuxで動作（依存関係充足時）。
 *   **詳細ログ:** アプリケーションログとFFmpegログを別タブで確認可能。
 
 ---
 
-## Screenshots
+## Screenshots(JA/EN)
 
-<img src="img/main_window.jpg" alt="Main Window" width="600"/>
+<img src="img/main_window.jpg" alt="Main Window" width="400"/>
+<img src="img/main_window_en.jpg" alt="Main Window" width="400"/>
 
 ---
 
@@ -65,7 +68,8 @@ Insta360 カメラで撮影した独自の形式 (.insv など)の動画は、�
 
 To use this application, you will need the following software and files:
 
-*   **Python:** Python 3.x (e.g., 3.7 or newer) must be installed on your PC.
+*   **Python:** Python **3.9 or newer** must be installed on your PC.
+    *   Tkinter (Tk version 8.6 or newer) is also required and is usually included with standard Python installations.
     *   See "Appendix 2: How to Install Python" below for installation guidance.
 *   **FFmpeg:** The video and audio processing library FFmpeg (and `ffprobe`, which is usually included) is required.
     *   See "Appendix 1: How to Install FFmpeg" below for installation guidance.
@@ -76,8 +80,9 @@ To use this application, you will need the following software and files:
     *   `advanced_yaw_selector.py` (Viewpoint setting UI module)
     *   `ffmpeg_worker.py` (FFmpeg processing worker script)
     *   `constants.py` (Configuration values definition file)
+    *   `strings.py` (User interface string definitions for internationalization)
     *   `tooltip_utils.py` (Tooltip display utility)
-    *   `update_checker.py`(Check GitHub Latest Relese)
+    *   `update_checker.py`(Check GitHub Latest Release)
     *   `insta360convert.bat` (Optional, simple launch batch file for Windows)
 
     All these Python files (`.py`) and the batch file (`.bat`, if used) should be placed in the **same folder**.
@@ -86,7 +91,8 @@ To use this application, you will need the following software and files:
 
 このアプリケーションを使用するには、以下のソフトウェアとファイルが必要です。
 
-*   **Python:** お使いの PC に Python 3.x (例: 3.7以降) がインストールされている必要があります。
+*   **Python:** お使いの PC に Python **3.9 以降** がインストールされている必要があります。
+    *   Tkinter (Tk バージョン 8.6 以降) も必要です (通常、標準のPythonインストールに含まれています)。
     *   導入方法は後述の「補足 2: Python の導入方法」を参照してください。
 *   **FFmpeg:** 動画・音声処理ライブラリである FFmpeg (および通常同梱されている `ffprobe`) が必要です。
     *   導入方法は後述の「補足 1: FFmpeg の導入方法」を参照してください。
@@ -97,6 +103,7 @@ To use this application, you will need the following software and files:
     *   `advanced_yaw_selector.py` (視点設定 UI モジュール)
     *   `ffmpeg_worker.py` (FFmpeg 処理ワーカースクリプト)
     *   `constants.py` (設定値定義ファイル)
+    *   `strings.py` (国際化対応のためのUI文字列定義ファイル)
     *   `tooltip_utils.py` (ツールチップ表示ユーティリティ)
     *   `update_checker.py`(GitHubに最新バージョンがあるか確認する)
     *   `insta360convert.bat` (Windows 用の簡単起動バッチファイル、任意)
@@ -121,7 +128,7 @@ There are a couple of ways to launch the application:
 1.  Open the folder where the "Application Files" are saved.
 2.  Open a Command Prompt or Terminal in that folder:
     *   **Windows:** Type `cmd` in the folder's address bar and press Enter. Alternatively, Shift + Right-click in the folder and select "Open PowerShell window here" or "Open command prompt here".
-3.  In the Command Prompt or Terminal, type `python insta360convert.py` and press Enter.
+3.  In the Command Prompt or Terminal, type `python insta360convert.py` (or `py insta360convert.py` if you used the `py` launcher on Windows) and press Enter.
 4.  The GUI application window will launch.
 
 **[日本語] 2. アプリケーションの起動**
@@ -140,7 +147,7 @@ There are a couple of ways to launch the application:
 1.  上記「アプリケーションファイル群」が保存されているフォルダを開きます。
 2.  そのフォルダ内でコマンドプロンプトまたはターミナルを開きます。
     *   **Windows の場合:** フォルダのアドレスバーに `cmd` と入力して Enter キーを押すか、フォルダ内で Shift キーを押しながら右クリックし、「PowerShell ウィンドウをここで開く」または「コマンドプロンプトをここで開く」を選択します。
-3.  コマンドプロンプトまたはターミナルに `python insta360convert.py` と入力して実行します。
+3.  コマンドプロンプトまたはターミナルに `python insta360convert.py` (Windowsで `py` ランチャーを利用している場合は `py insta360convert.py`) と入力して実行します。
 4.  GUI アプリケーションのウィンドウが起動します。
 
 ---
@@ -155,7 +162,7 @@ To start converting quickly with default-like settings:
 4.  **Check Output Format:** "PNG Sequence" is selected by default. If you prefer video or JPEG output, change this in the "Output Settings" section.
 5.  **Start Conversion:** Click the "Start Conversion" button at the bottom of the window.
 
-Processing will begin with settings close to the defaults. For more detailed configuration, refer to "4. Main Interface and Settings" below. Many UI elements display a tooltip with a brief explanation when you hover the mouse cursor over them.
+Processing will begin with settings close to the defaults. For more detailed configuration, refer to "4. Main Interface and Settings" below. Many UI elements display a tooltip with a brief explanation when you hover the mouse cursor over them. You can switch the UI language via the "Language (言語)" menu.
 
 **[日本語] 3. クイックスタートガイド(最短手順)**
 
@@ -167,7 +174,7 @@ Processing will begin with settings close to the defaults. For more detailed con
 4.  **出力形式を確認:** デフォルトでは「PNG シーケンス」が選択されています。動画で出力したい場合や、JPEG で出力したい場合は、「出力設定」セクションで変更します。
 5.  **変換開始:** ウィンドウ下部にある「変換開始」ボタンをクリックします。
 
-これで、デフォルト設定に近い形で処理が開始されます。詳細な設定を変更したい場合は、次の「4. 操作画面と設定項目」を参照してください。多くの UI 要素にマウスカーソルを合わせると、簡単な説明がツールチップとして表示されますので、そちらも参考にしてください。
+これで、デフォルト設定に近い形で処理が開始されます。詳細な設定を変更したい場合は、次の「4. 操作画面と設定項目」を参照してください。多くの UI 要素にマウスカーソルを合わせると、簡単な説明がツールチップとして表示されます。「言語 (Language)」メニューからUI言語を切り替えることも可能です。
 
 ---
 
@@ -276,8 +283,10 @@ This entire section is provided by the "Advanced Yaw Selector" module.
 
 **4.5. Menu Bar**
 
-The application window includes a menu bar at the top (typically "Help" on Windows/Linux, or integrated into the system menu bar on macOS).
+The application window includes a menu bar at the top.
 
+*   **Language (言語) Menu:**
+    *   Allows switching the user interface language between English and Japanese.
 *   **Help Menu:**
     *   **About:** Displays information about the application, including the current version number.
     *   **Check for Updates...:** Connects to the GitHub repository to check if a newer version of Insta360Convert GUI is available. If an update is found, it will inform you and provide an option to open the releases page in your web browser.
@@ -382,8 +391,10 @@ The application window includes a menu bar at the top (typically "Help" on Windo
     *   **FFmpeg出力ログタブ:** FFmpegコマンド実行時の詳細メッセージ(バージョン情報、エンコード進捗等)表示。問題発生時の詳細調査に役立つ。
 
 **4.5. メニューバー**  
-アプリケーションウィンドウの上部にはメニューバーがあります (Windows/Linuxでは通常「ヘルプ」、macOSではシステムメニューバーに統合)。
+アプリケーションウィンドウの上部にはメニューバーがあります。
 
+*   **言語 (Language) メニュー:**
+    *   ユーザーインターフェースの言語を英語と日本語で切り替えることができます。
 *   **ヘルプメニュー:**
     *   **バージョン情報:** アプリケーションの現在のバージョン情報などを表示します。
     *   **アップデートを確認...:** GitHubリポジトリに接続し、Insta360Convert GUIの新しいバージョンが利用可能かどうかを確認します。アップデートが見つかった場合は通知し、リリーススページをウェブブラウザで開くオプションを提供します。
@@ -462,31 +473,31 @@ This application uses FFmpeg internally. Please prepare it using the following s
 
 ## Appendix 2: How to Install Python
 
-Python is required to run this application.
+Python (version 3.9 or newer) and Tkinter (Tk version 8.6 or newer, usually included with Python) are required to run this application.
 
-1.  **Download:** Download the latest stable installer from the official Python website ([https://www.python.org/downloads/](https://www.python.org/downloads/)) (e.g., "Windows installer (64-bit)" for Windows).
+1.  **Download:** Download the latest stable installer for Python 3.9 or newer from the official Python website ([https://www.python.org/downloads/](https://www.python.org/downloads/)) (e.g., "Windows installer (64-bit)" for Windows).
 2.  **Install (Recommended settings for Windows):**
     1.  Run the downloaded installer.
     2.  On the first screen of the installer, **DO NOT** check the "Add Python X.X to PATH" checkbox (this is to avoid conflicts if managing multiple Python versions and to encourage using the `py` launcher).
     3.  On the same screen, select "Customize installation".
-    4.  On the "Optional Features" screen, ensure "py launcher" is checked, then click "Next".
-    5.  On the "Advanced Options" screen, it is **strongly recommended** to check "Install py launcher for all users (requires elevation)". This makes the `py` command available system-wide from the command prompt and ensures reliable launching from batch files. (This option requires administrator privileges).
+    4.  On the "Optional Features" screen, ensure "pip" and "py launcher" are checked, then click "Next". (Tkinter/IDLE support should also be checked if not already, as this installs Tk).
+    5.  On the "Advanced Options" screen, it is **strongly recommended** to check "Install py launcher for all users (requires elevation)". This makes the `py` command available system-wide from the command prompt and ensures reliable launching from batch files. (This option requires administrator privileges). Also check "Install for all users" if you want Python in a standard Program Files location.
     6.  Change the installation folder if desired, then click "Install" to begin.
-3.  **Verify:** Open a Command Prompt or Terminal and type `py --version` (for Windows) or `python3 --version` (for macOS/Linux) and press Enter. If the installed Python version is displayed, the setup is successful.
+3.  **Verify:** Open a Command Prompt or Terminal and type `py --version` (for Windows) or `python3 --version` (for macOS/Linux) and press Enter. If the installed Python version (3.9+) is displayed, the setup is successful. You can also type `py -m tkinter` or `python3 -m tkinter` to verify Tkinter is working (a small test window should appear).
 
 **[日本語] 補足 2: Python の導入方法**
 
-このアプリケーションを実行するには Python が必要です。
+このアプリケーションを実行するには Python (バージョン 3.9 以降) および Tkinter (Tk バージョン 8.6 以降、通常Pythonに同梱) が必要です。
 
-1.  **ダウンロード:** Python 公式サイト (https://www.python.org/downloads/) から、最新の安定版インストーラー (Windows の場合は "Windows installer (64-bit)" など) をダウンロードします。
+1.  **ダウンロード:** Python 公式サイト (https://www.python.org/downloads/) から、Python 3.9 以降の最新の安定版インストーラー (Windows の場合は "Windows installer (64-bit)" など) をダウンロードします。
 2.  **インストール (Windows の場合の推奨設定):**
     1.  ダウンロードしたインストーラーを実行します。
     2.  インストーラーの最初の画面で、「Add Python X.X to PATH」のチェックボックスはチェックしないでください(複数の Python バージョンを管理する場合に競合を避けるため、また、py ランチャーの使用を推奨するため)。
     3.  同じ画面で「Customize installation」を選択します。
-    4.  次の「Optional Features」画面で、「py launcher」にチェックが入っていることを確認し、「Next」をクリックします。
-    5.  次の「Advanced Options」画面で、「Install py launcher for all users (requires elevation)」(または類似の日本語表記「すべてのユーザー用に pyランチャーをインストールする(管理者権限が必要)」)にチェックを入れることを強く推奨します。これにより、コマンドプロンプトで py コマンドがシステム全体で利用可能になり、バッチファイルからの起動が確実になります。(このオプションには管理者権限が必要です。)
+    4.  次の「Optional Features」画面で、「pip」と「py launcher」にチェックが入っていることを確認し、「Next」をクリックします。(Tkinter/IDLE のサポートもチェックされていなければチェックしてください。これによりTkがインストールされます。)
+    5.  次の「Advanced Options」画面で、「Install py launcher for all users (requires elevation)」(または類似の日本語表記「すべてのユーザー用に pyランチャーをインストールする(管理者権限が必要)」)にチェックを入れることを強く推奨します。これにより、コマンドプロンプトで py コマンドがシステム全体で利用可能になり、バッチファイルからの起動が確実になります。(このオプションには管理者権限が必要です。) また、「Install for all users」もチェックすると、Python が標準的な Program Files 配下にインストールされます。
     6.  必要に応じてインストール先フォルダを変更し、「Install」をクリックしてインストールを開始します。
-3.  **確認:** コマンドプロンプトまたはターミナルを開き、`py --version` (Windows の場合)または `python3 --version` (macOS/Linux の場合)と入力して Enter キーを押します。インストールした Python のバージョンが表示されれば、設定は成功です。
+3.  **確認:** コマンドプロンプトまたはターミナルを開き、`py --version` (Windows の場合)または `python3 --version` (macOS/Linux の場合)と入力して Enter キーを押します。インストールした Python のバージョン(3.9+)が表示されれば、設定は成功です。また、`py -m tkinter` または `python3 -m tkinter` と入力して小さなテストウィンドウが表示されれば、Tkinterも動作しています。
 
 ---
 
@@ -497,5 +508,3 @@ This project is licensed under the **MIT License**. See the `LICENSE` file for d
 **[日本語] ライセンス**
 
 このプロジェクトは **MIT License** の下にライセンスされています。詳細は `LICENSE` ファイルをご覧ください。
-
----

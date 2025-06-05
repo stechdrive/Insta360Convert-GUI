@@ -1,20 +1,12 @@
 @echo off
-REM 文字コードをUTF-8に変更 (文字化け対策)
+REM Set console code page to UTF-8 to handle non-ASCII characters in paths or script output
 chcp 65001 > nul
 
-REM バッチファイルが存在するディレクトリに移動
+REM Change directory to the location of this batch file
+REM This ensures that the script can find any relative files correctly
 cd /d "%~dp0"
 
-REM Pythonスクリプトのファイル名を指定 (拡張子 .py を含める)
-set SCRIPT_NAME=insta360convert.py
-
-REM --- 起動メッセージを表示 ---
-echo %SCRIPT_NAME% を起動しています...
-echo GUIウィンドウが表示されます。
-echo (このコンソールウィンドウは自動的に閉じます)
-REM --------------------------
-
-REM startコマンドとpyw.exeを使ってGUIを起動し、バッチファイルは待機せずに終了する
-start "" pyw "%SCRIPT_NAME%"
-
-REM --- 終了メッセージやpauseは不要 ---
+REM Launch the Python GUI script without a console window
+REM "start" with an empty title "" runs the command in a new process and allows the batch file to exit immediately
+REM "pyw.exe" is used to run Python scripts without opening a console window, suitable for GUI applications
+start "" pyw insta360convert.py
