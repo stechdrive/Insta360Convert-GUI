@@ -8,32 +8,24 @@ cd /d "%~dp0"
 
 REM --- Auto-detect and execute Python environment ---
 
-REM Priority 1: Try the Python Launcher (py.exe).
-REM This is the standard way to run Python on Windows when installed from python.org,
-REM and it works even if Python is not in the system's PATH.
+REM Priority 1: Try the Python Launcher (py.exe). This is the best method.
 where py >nul 2>nul
 if %errorlevel% == 0 (
-    echo Launching with Python Launcher (py.exe)...
     py -w insta360convert.py
     exit /b
 )
 
-REM Priority 2: Try python.exe.
-REM This covers installations from the Windows Store or official installers where python.exe was added to the PATH.
-REM The "start /b" command runs the script without creating a new console window.
+REM Priority 2: Try python.exe. This covers the Microsoft Store version.
 where python >nul 2>nul
 if %errorlevel% == 0 (
-    echo Launching with python.exe...
-    start /b python insta360convert.py
+    REM Use "start /min" to launch in a new, minimized console, allowing this batch file to exit immediately.
+    start "Insta360Convert GUI" /min python insta360convert.py
     exit /b
 )
 
 REM Priority 3: Fallback to pyw.exe directly.
-REM This handles rare cases where only pyw.exe is in the PATH.
-REM The "start """ runs the command in a new process, allowing the batch file to exit immediately.
 where pyw >nul 2>nul
 if %errorlevel% == 0 (
-    echo Launching with pyw.exe...
     start "" pyw insta360convert.py
     exit /b
 )
