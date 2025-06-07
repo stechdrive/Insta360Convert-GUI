@@ -65,6 +65,7 @@ Desktop.ini     # Windows
 # Local settings files (もしユーザー固有の設定ファイルがある場合)
 # local_settings.py
 # .env
+app_settings.json
 
 # Jupyter Notebook checkpoints (もし使用する場合)
 .ipynb_checkpoints
