@@ -1131,7 +1131,7 @@ class AdvancedYawSelector(tk.Frame):
             self.yaw_canvas.create_oval(
                 canvas_center_x - world_radius_scale, canvas_center_y - world_radius_scale,
                 canvas_center_x + world_radius_scale, canvas_center_y + world_radius_scale,
-                outline="#E0E0E0", dash=(1,3)
+                outline="#FF0000", dash=(1,3)
             )
 
             pyramids_data_list = []
