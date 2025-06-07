@@ -261,7 +261,7 @@ This entire section is provided by the "Advanced Yaw Selector" module.
             *   Outputs still image files in JPEG format. Lossy compression, smaller file sizes, but lower quality than PNG.
             *   **Extraction Interval (sec):** Same as for PNG.
             *   **Quality (1-100):** Specify JPEG quality from 1 (low quality, small size) to 100 (high quality, large size). Default is `90`.
-        *   **Video (HEVC/H.265):**
+        *   **Video (HEVC/H.256):**
             *   Outputs each viewpoint as an individual video file (H.265 codec, MP4 container). Audio is not included.
             *   **Preset:** Specifies the encoding speed vs. compression balance (e.g., `medium`, `slow`). Default is `medium`.
             *   **CQ/CRF:** Specifies the encoding quality. Lower values mean higher quality (and larger files). Range 0-51, typically 15-28. Default is `18`. (Handled as CQ for CUDA, CRF for CPU).
@@ -439,7 +439,29 @@ If an error occurs during processing, the "Start Conversion" button will become 
 
 ## Appendix 1: How to Install FFmpeg
 
-This application uses FFmpeg internally. Please prepare it using the following steps:
+This application uses FFmpeg internally. Please prepare it using one of the following methods.
+
+### For Windows Users: Easy Installation via winget (Recommended)
+
+For Windows 10/11 users, the easiest way to install FFmpeg is by using the `winget` (Windows Package Manager) command-line tool. This method automatically handles the download, installation, and PATH configuration.
+
+1.  **Open Windows Terminal (as Administrator):**
+    *   Click the Start button.
+    *   Type `Terminal`.
+    *   Right-click on the "Terminal" app and select "Run as administrator".
+2.  **Run the Install Command:**
+    *   Copy the command below, paste it into the Terminal window, and press Enter.
+      ```cmd
+      winget install FFmpeg
+      ```
+3.  **Approve and Wait:**
+    *   You might be asked to agree to some terms. If so, type `y` and press Enter.
+    *   `winget` will then download and install FFmpeg automatically.
+4.  **Verify:**
+    *   **Close the current Terminal window and open a new one.** This is important for the system to recognize the new settings.
+    *   In the new Terminal, type `ffmpeg -version` and press Enter. If FFmpeg version information is displayed, the setup is successful.
+
+### Alternative: Manual Installation (for Advanced Users)
 
 1.  **Download:** Download a build for your OS from the official FFmpeg website ([https://ffmpeg.org/download.html](https://ffmpeg.org/download.html)) or other trusted sources.
     *   For Windows, builds from gyan.dev or BtbN are common. Choose a `full_build` or `essentials_build` zip file.
@@ -455,7 +477,29 @@ This application uses FFmpeg internally. Please prepare it using the following s
 
 **[日本語] 補足 1: FFmpeg の導入方法**
 
-このアプリケーションは内部で FFmpeg というツールを使用します。以下の手順で準備してください。
+このアプリケーションは内部で FFmpeg というツールを使用します。以下のいずれかの方法で準備してください。
+
+### Windows ユーザー向け: winget を使った簡単な導入方法 (推奨)
+
+Windows 10/11 をお使いの場合、コマンドラインツール `winget` (Windows パッケージ マネージャー) を使うのが最も簡単な導入方法です。ダウンロード、インストール、PATHの設定まで自動で行われます。
+
+1.  **Windows ターミナルを管理者として開く:**
+    *   スタートボタンをクリックします。
+    *   `ターミナル` と入力します。
+    *   表示された「ターミナル」アプリを右クリックし、「管理者として実行」を選択します。
+2.  **インストールコマンドを実行:**
+    *   以下のコマンドをコピーして、ターミナルのウィンドウに貼り付け、Enterキーを押します。
+      ```cmd
+      winget install FFmpeg
+      ```
+3.  **承認して待機:**
+    *   途中でライセンス等への同意を求められた場合は `y` と入力してEnterキーを押します。
+    *   `winget` が自動的に FFmpeg をダウンロードし、インストールします。
+4.  **確認:**
+    *   **一度現在のターミナルウィンドウを閉じ、新しいターミナルを開き直してください。** これはシステムが新しい設定を認識するために重要です。
+    *   新しいターミナルで `ffmpeg -version` と入力して Enterキーを押します。FFmpeg のバージョン情報が表示されれば、設定は成功です。
+
+### 別な方法: 手動での導入 (詳細設定)
 
 1.  **ダウンロード:** FFmpeg 公式サイト (https://ffmpeg.org/download.html)などから、お使いの OS 向けのビルドをダウンロードします。
     *   Windows の場合: gyan.dev や BtbN のビルドが一般的です。full_build または essentials_buildのzip ファイルを選びます。
@@ -475,6 +519,24 @@ This application uses FFmpeg internally. Please prepare it using the following s
 
 Python (version 3.9 or newer) and Tkinter (Tk version 8.6 or newer, usually included with Python) are required to run this application.
 
+### For Windows Users: Easy Installation via Microsoft Store (Recommended)
+
+For most Windows users, installing Python from the Microsoft Store is the simplest method.
+
+1.  **Open the Microsoft Store:**
+    *   Click the Start button.
+    *   Type `Microsoft Store` and open the app.
+2.  **Search for Python:**
+    *   In the Store's search bar, type `Python`.
+3.  **Install:**
+    *   Select the latest official Python version from the search results.
+    *   Click the "Get" or "Install" button. Python will be downloaded and installed automatically.
+4.  **Verify:**
+    *   Open a Command Prompt or Terminal.
+    *   Type `python --version` and press Enter. If the installed Python version (3.9+) is displayed, the setup is successful.
+
+### Alternative: Manual Installation (for Advanced Users)
+
 1.  **Download:** Download the latest stable installer for Python 3.9 or newer from the official Python website ([https://www.python.org/downloads/](https://www.python.org/downloads/)) (e.g., "Windows installer (64-bit)" for Windows).
 2.  **Install (Recommended settings for Windows):**
     1.  Run the downloaded installer.
@@ -488,6 +550,24 @@ Python (version 3.9 or newer) and Tkinter (Tk version 8.6 or newer, usually incl
 **[日本語] 補足 2: Python の導入方法**
 
 このアプリケーションを実行するには Python (バージョン 3.9 以降) および Tkinter (Tk バージョン 8.6 以降、通常Pythonに同梱) が必要です。
+
+### Windows ユーザー向け: Microsoft Store を使った簡単な導入方法 (推奨)
+
+ほとんどの Windows ユーザーにとって、Microsoft Store から Python をインストールするのが最も簡単な方法です。
+
+1.  **Microsoft Store を開く:**
+    *   スタートボタンをクリックします。
+    *   `Microsoft Store` と入力してアプリを開きます。
+2.  **Python を検索:**
+    *   ストアの上部にある検索バーで `Python`と入力します。
+3.  **インストール:**
+    *   検索結果から、最新の公式 Python を選択します。
+    *   「入手」または「インストール」ボタンをクリックします。自動的にダウンロードとインストールが行われます。
+4.  **確認:**
+    *   コマンドプロンプトまたはターミナルを開きます。
+    *   `python --version` と入力して Enterキーを押します。インストールした Python のバージョン (3.9+) が表示されれば、設定は成功です。
+
+### 別な方法: 手動での導入 (詳細設定)
 
 1.  **ダウンロード:** Python 公式サイト (https://www.python.org/downloads/) から、Python 3.9 以降の最新の安定版インストーラー (Windows の場合は "Windows installer (64-bit)" など) をダウンロードします。
 2.  **インストール (Windows の場合の推奨設定):**
