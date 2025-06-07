@@ -1,11 +1,11 @@
-# Insta360Convert GUI v2.2.0
+# Insta360Convert GUI v2.2.1
 
 **Insta360Convert GUI** is a user-friendly desktop application designed to extract multiple defined perspective views (defined by pitch, yaw, and Field of View) from 360° equirectangular videos and export them as video clips or image sequences. It's a versatile tool for photogrammetry, VR content creation, visual effects, and various other video production workflows. This application supports English and Japanese user interfaces.
 
 **⚠️ Important Prerequisites: This application requires Python (3.9 or newer) and FFmpeg to be installed on your system, along with Tkinter (8.6 or newer, usually included with Python). Please see the "Requirements" section below for details.**
 
 **[日本語]**
-**Insta360Convert GUI v2.2.0** は、360°動画 (エクイレクタングラー形式)から、指定した複数の視点(ピッチ角、ヨー角、視野角)を切り出して、動画または静止画シーケンスとして出力するためのGUIアプリケーションです。フォトグラメトリやVRコンテンツ制作、映像作品の素材作成など、幅広い用途にご利用いただけます。本アプリケーションは日本語と英語のユーザーインターフェースに対応しています。
+**Insta360Convert GUI v2.2.1** は、360°動画 (エクイレクタングラー形式)から、指定した複数の視点(ピッチ角、ヨー角、視野角)を切り出して、動画または静止画シーケンスとして出力するためのGUIアプリケーションです。フォトグラメトリやVRコンテンツ制作、映像作品の素材作成など、幅広い用途にご利用いただけます。本アプリケーションは日本語と英語のユーザーインターフェースに対応しています。
 
 **⚠️ 事前の重要事項: このアプリケーションを使用するには、お使いのシステムに Python (3.9 以降) と FFmpeg がインストールされており、Tkinter (8.6 以降、通常Pythonに同梱) が利用可能である必要があります。詳細は下記の「1. 準備するもの」セクションをご覧ください。**
 
