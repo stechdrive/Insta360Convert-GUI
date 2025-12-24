@@ -81,3 +81,5 @@ AGENTS.md
 
 # pytest cache (もしテストにpytestを使用する場合)
 .pytest_cache/
+
+loft/
