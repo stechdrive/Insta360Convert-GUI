@@ -1,11 +1,11 @@
-# Insta360Convert GUI v2.2.2
+# Insta360Convert GUI v2.3.0
 
 **Insta360Convert GUI** is a user-friendly desktop application designed to extract multiple defined perspective views (defined by pitch, yaw, and Field of View) from 360° equirectangular videos and export them as video clips or image sequences. It's a versatile tool for photogrammetry, VR content creation, visual effects, and various other video production workflows. This application supports English and Japanese user interfaces.
 
 **⚠️ Important Prerequisites: This application requires Python (3.9 or newer) and FFmpeg to be installed on your system, along with Tkinter (8.6 or newer, usually included with Python). Please see the "Requirements" section below for details.**
 
 **[日本語]**
-**Insta360Convert GUI v2.2.2** は、360°動画 (エクイレクタングラー形式)から、指定した複数の視点(ピッチ角、ヨー角、視野角)を切り出して、動画または静止画シーケンスとして出力するためのGUIアプリケーションです。フォトグラメトリやVRコンテンツ制作、映像作品の素材作成など、幅広い用途にご利用いただけます。本アプリケーションは日本語と英語のユーザーインターフェースに対応しています。
+**Insta360Convert GUI v2.3.0** は、360°動画 (エクイレクタングラー形式)から、指定した複数の視点(ピッチ角、ヨー角、視野角)を切り出して、動画または静止画シーケンスとして出力するためのGUIアプリケーションです。フォトグラメトリやVRコンテンツ制作、映像作品の素材作成など、幅広い用途にご利用いただけます。本アプリケーションは日本語と英語のユーザーインターフェースに対応しています。
 
 **⚠️ 事前の重要事項: このアプリケーションを使用するには、お使いのシステムに Python (3.9 以降) と FFmpeg がインストールされており、Tkinter (8.6 以降、通常Pythonに同梱) が利用可能である必要があります。詳細は下記の「1. 準備するもの」セクションをご覧ください。**
 
@@ -37,6 +37,7 @@ Insta360 カメラで撮影した独自の形式 (.insv など)の動画は、�
 *   **Interactive Viewpoint Setup:** Define pitch, yaw, and FOV for multiple viewpoints using the advanced 3D-like selector.
 *   **Per-Pitch FOV:** Set a custom Field of View for each selected pitch angle.
 *   **Flexible Output:** Export as MP4 (H.265/HEVC) video clips or PNG/JPEG image sequences.
+*   **COLMAP Rig Export:** Output a COLMAP rig layout with images and `rig_config.json` for rig_configurator without manual entry.
 *   **CUDA Acceleration:** Supports NVIDIA CUDA for hardware-accelerated decoding and encoding (with compatibility testing for high-resolution inputs).
 *   **Batch Processing:** Process all defined viewpoints in parallel.
 *   **Multilingual UI:** User interface available in English and Japanese, with on-the-fly language switching.
@@ -48,6 +49,7 @@ Insta360 カメラで撮影した独自の形式 (.insv など)の動画は、�
 *   **インタラクティブな視点設定:** 高度な3D風セレクタを使用して、複数の視点のピッチ、ヨー、FOVを定義。
 *   **ピッチごとのFOV設定:** 選択した各ピッチ角に対してカスタムFOVを設定可能。
 *   **柔軟な出力形式:** MP4 (H.265/HEVC) 動画または PNG/JPEG 静止画シーケンスとして出力。
+*   **COLMAP Rig書き出し:** COLMAPのRig機能向けに画像と`rig_config.json`を自動生成。
 *   **CUDAアクセラレーション:** NVIDIA CUDAによるハードウェアアクセラレーションに対応（高解像度入力時の互換性テスト付き）。
 *   **バッチ処理:** 定義された全ての視点を並列処理。
 *   **多言語UI:** 日本語と英語のユーザーインターフェースに対応し、実行中に言語切り替え可能。
@@ -79,6 +81,7 @@ To use this application, you will need the following software and files:
     *   `gui_app.py` (Main GUI application class)
     *   `advanced_yaw_selector.py` (Viewpoint setting UI module)
     *   `ffmpeg_worker.py` (FFmpeg processing worker script)
+    *   `colmap_rig_export.py` (COLMAP rig export helper)
     *   `constants.py` (Configuration values definition file)
     *   `strings.py` (User interface string definitions for internationalization)
     *   `tooltip_utils.py` (Tooltip display utility)
@@ -102,6 +105,7 @@ To use this application, you will need the following software and files:
     *   `gui_app.py` (GUI アプリケーションのメインクラス)
     *   `advanced_yaw_selector.py` (視点設定 UI モジュール)
     *   `ffmpeg_worker.py` (FFmpeg 処理ワーカースクリプト)
+    *   `colmap_rig_export.py` (COLMAP Rig書き出しヘルパー)
     *   `constants.py` (設定値定義ファイル)
     *   `strings.py` (国際化対応のためのUI文字列定義ファイル)
     *   `tooltip_utils.py` (ツールチップ表示ユーティリティ)
@@ -250,8 +254,12 @@ This entire section is provided by the "Advanced Yaw Selector" module.
         *   `lanczos`: Highest quality, very sharp, but computationally intensive and can occasionally produce ringing artifacts.
         *   `linear`: Standard quality and speed.
         *   `nearest`: Fastest, but lowest quality (prone to blockiness and aliasing).
+*   **Export Mode:**
+    *   **Standard:** Uses the existing per-viewpoint folder/file naming.
+    *   **COLMAP Rig:** Outputs under `<Output Folder>/colmap_rig/images/rig1/camXX/<session>_frame_00001.png` (or `.jpg`) and writes `<Output Folder>/colmap_rig/rig_config.json`. The `<session>` prefix is auto-generated from the input video name and `_02`, `_03`... are appended if needed. Video output is disabled (PNG/JPEG only).
 *   **Output Format Radio Buttons and Options:**
     *   *【Recommended】 For photogrammetry software (e.g., Reality Capture), selecting "PNG Sequence" is recommended.*
+    *   *In COLMAP Rig mode, video output is disabled. Use PNG/JPEG sequences.*
         *   **PNG Sequence:**
             *   Outputs still image files in PNG format (lossless compression, high quality).
         *   **Extraction Interval (sec):** Specify how often to extract a still image (e.g., `0.5` for 2 frames per second, `1.00` for 1 frame per second). Input in 0.01 second increments. Default is `1.00` sec.
@@ -266,7 +274,16 @@ This entire section is provided by the "Advanced Yaw Selector" module.
             *   **Preset:** Specifies the encoding speed vs. compression balance (e.g., `medium`, `slow`). Default is `medium`.
             *   **CQ/CRF:** Specifies the encoding quality. Lower values mean higher quality (and larger files). Range 0-51, typically 15-28. Default is `18`. (Handled as CQ for CUDA, CRF for CPU).
 
-**4.4. Controls and Progress**  
+**4.4. COLMAP Pipeline**
+
+*   **COLMAP Rig Folder:** Select the `colmap_rig` folder (must contain `images/` and `rig_config.json`).
+*   **COLMAP Executable:** Path to `colmap.exe` (or `colmap` on macOS/Linux).
+*   **Matcher:** Choose `sequential` for video-style matching or `exhaustive` for full pair matching.
+*   **Postshot Output:** Output folder for Postshot-ready data. Default is `<colmap_rig>/postshot`.
+*   **Database:** `database.db` is created inside the COLMAP Rig folder. Existing DB requires confirmation to overwrite.
+*   **Run COLMAP:** Executes feature_extractor → rig_configurator → matcher → mapper → image_undistorter.
+
+**4.5. Controls and Progress**  
 
 *   **Parallel Processes:**  Specify the number of viewpoints to process simultaneously (number of FFmpeg processes). Selectable from 1 up to the number of logical CPU cores on your PC. The default value is automatically set based on the total number of pitch angles in the "Output Pitch Angle List" (capped by the PC's logical core count). This default updates if you change the number of pitch angles. Increasing this may speed up processing but also increases CPU load and memory usage. The optimal value varies by environment; manual adjustment may be beneficial.  
 
@@ -281,7 +298,7 @@ This entire section is provided by the "Advanced Yaw Selector" module.
     *   **Application Log Tab:** Displays start/completion messages, settings, messages from the application, error information, etc.
     *   **FFmpeg Output Log Tab:** Displays detailed messages from FFmpeg during command execution (version info, encoding progress, etc.). Useful for in-depth troubleshooting if problems occur.  
 
-**4.5. Menu Bar**
+**4.6. Menu Bar**
 
 The application window includes a menu bar at the top.
 
@@ -361,8 +378,12 @@ The application window includes a menu bar at the top.
         *   `lanczos`: 最高画質クラスでシャープだが重く稀にリンギング発生。
         *   `linear`: 標準的な品質と速度。
         *   `nearest`: 最も高速だが画質最低(ブロックノイズやジャギーが出やすい)。
+*   **書き出しモード:**
+    *   **標準:** 従来の視点ごとのフォルダ/ファイル構成で出力。
+    *   **COLMAP Rig:** `<出力フォルダ>/colmap_rig/images/rig1/camXX/<session>_frame_00001.png` (または `.jpg`) と `<出力フォルダ>/colmap_rig/rig_config.json` を書き出し。`<session>` は入力動画名から自動生成され、必要に応じて `_02`, `_03`… が付与されます。動画出力は無効（PNG/JPEGのみ）。
 *   **出力形式ラジオボタンとオプション:**
 *   *【推奨】フォトグラメトリソフト(Reality Capture等)で使用する場合、「PNGシーケンス」を推奨。*
+*   *COLMAP Rigモードでは動画出力は無効です。PNG/JPEGのみ選択してください。*
 *   **PNG シーケンス(静止画シーケンス (PNG)):**
     *   PNG形式の静止画ファイルを出力（可逆圧縮で高画質）。
         *   **抽出間隔(秒):** 何秒ごとに1枚静止画を切り出すか指定(例: `0.5`→毎秒2枚, `1.00`→毎秒1枚)。0.01秒単位。デフォルト`1.00`秒。
@@ -377,7 +398,16 @@ The application window includes a menu bar at the top.
         *   **Preset:** エンコード速度と品質のバランス指定(例: `medium`, `slow`)。デフォルト`medium`。
         *   **CQ/CRF:** エンコード品質指定。数値が低いほど高品質(ファイルサイズ大)。0～51の範囲、通常15～28程度。デフォルト`18`(CUDAはCQ, CPUはCRFとして扱われる)。
 
-**4.4. コントロールと進捗**
+**4.4. COLMAPパイプライン**
+
+*   **COLMAP Rigフォルダ:** `colmap_rig` フォルダを選択（`images/` と `rig_config.json` が必要）。
+*   **COLMAP実行ファイル:** `colmap.exe`（または macOS/Linux では `colmap`）のパス。
+*   **Matcher:** `sequential`（動画向け）または `exhaustive`（全組み合わせ、重いが繋がりやすい）を選択。
+*   **Postshot出力先:** Postshot用データの出力先。デフォルトは `<colmap_rig>/postshot`。
+*   **Database:** `database.db` は COLMAP Rigフォルダ内に作成。既存DBは上書き確認あり。
+*   **COLMAP実行:** feature_extractor → rig_configurator → matcher → mapper → image_undistorter を実行。
+
+**4.5. コントロールと進捗**
 *   **並列処理数:** 同時に処理する視点の数(FFmpegプロセス数)を指定。PCのCPUコア数に応じ1から最大論理コア数まで選択可。デフォルト値は「出力するピッチ角リスト」のピッチ角総数(PC論理コア数上限)に自動設定され、ピッチ角数変更に追随。値を大きくすると処理が速くなる可能性があるがCPU負荷やメモリ使用量が増加。最適値は環境依存のため手動調整も可。
 *   **変換開始ボタン:** 全設定確認後、クリックで変換処理開始。
 *   **中止ボタン:** 変換処理中にクリックで処理中断。
@@ -390,7 +420,7 @@ The application window includes a menu bar at the top.
     *   **アプリケーションログタブ:** 処理開始/完了、設定内容、アプリからのメッセージ、エラー情報等表示。
     *   **FFmpeg出力ログタブ:** FFmpegコマンド実行時の詳細メッセージ(バージョン情報、エンコード進捗等)表示。問題発生時の詳細調査に役立つ。
 
-**4.5. メニューバー**  
+**4.6. メニューバー**  
 アプリケーションウィンドウの上部にはメニューバーがあります。
 
 *   **言語 (Language) メニュー:**
@@ -407,11 +437,16 @@ When processing is successfully completed, the "Start Conversion" button becomes
 
 Folders (for image sequences) or files (for videos) with names like the following will be created in the specified "Output Folder":
 
-*   **For Image Sequences:**
-    *   A subfolder named `[OriginalVideoFileName]_pXXX_yYYY` is created for each viewpoint combination (XXX is the 3-digit pitch angle, with a minus sign replaced by 'm'; YYY is the 3-digit yaw angle. Examples: `p000_y045`, `pm30_y120`).
-    *   Inside each subfolder, sequentially numbered image files named `[OriginalVideoFileName]_pXXX_yYYY_NNNNN.png` (or `.jpg`) are saved.
-*   **For Videos:**
-    *   A video file named `[OriginalVideoFileName]_pXXX_yYYY.mp4` is created for each viewpoint combination (XXX format is the same as for image sequences).
+*   **Standard Mode:**
+    *   **For Image Sequences:**
+        *   A subfolder named `[OriginalVideoFileName]_pXXX_yYYY` is created for each viewpoint combination (XXX is the 3-digit pitch angle, with a minus sign replaced by 'm'; YYY is the 3-digit yaw angle. Examples: `p000_y045`, `pm30_y120`).
+        *   Inside each subfolder, sequentially numbered image files named `[OriginalVideoFileName]_pXXX_yYYY_NNNNN.png` (or `.jpg`) are saved.
+    *   **For Videos:**
+        *   A video file named `[OriginalVideoFileName]_pXXX_yYYY.mp4` is created for each viewpoint combination (XXX format is the same as for image sequences).
+*   **COLMAP Rig Mode (PNG/JPEG only):**
+    *   Images are saved as `colmap_rig/images/rig1/camXX/<session>_frame_00001.png` (or `.jpg`) with the same frame name across cameras.
+    *   The `<session>` prefix is auto-generated from the input video name and `_02`, `_03`... are appended if needed.
+    *   `colmap_rig/rig_config.json` is generated for rig_configurator.
 
 **[日本語] 5. 出力結果**
 
@@ -419,11 +454,16 @@ Folders (for image sequences) or files (for videos) with names like the followin
 
 指定した「出力フォルダ」内に、以下のような名前のフォルダ (静止画の場合)またはファイル(動画の場合)が作成されます。
 
-*   **静止画の場合:**
-    *   元の動画ファイル名_pXXX_yYYY という名前のサブフォルダが、指定した視点の組み合わせごとに作成されます (XXX はピッチ角3桁で、マイナス記号は m に置換されます。YYY はヨー角3桁。例:p000_y045, pm30_y120)。
-    *   各サブフォルダの中に、元の動画ファイル名_pXXX_yYYY_NNNNN.png (または.jpg)という名前で連番の静止画ファイルが保存されます。
-*   **動画の場合:**
-    *   元の動画ファイル名_pXXX_yYYY.mp4 という名前の動画ファイルが、指定した視点の組み合わせごとに作成されます (XXX はピッチ角のマイナス記号は m に置換)。
+*   **標準モード:**
+    *   **静止画の場合:**
+        *   元の動画ファイル名_pXXX_yYYY という名前のサブフォルダが、指定した視点の組み合わせごとに作成されます (XXX はピッチ角3桁で、マイナス記号は m に置換されます。YYY はヨー角3桁。例:p000_y045, pm30_y120)。
+        *   各サブフォルダの中に、元の動画ファイル名_pXXX_yYYY_NNNNN.png (または.jpg)という名前で連番の静止画ファイルが保存されます。
+    *   **動画の場合:**
+        *   元の動画ファイル名_pXXX_yYYY.mp4 という名前の動画ファイルが、指定した視点の組み合わせごとに作成されます (XXX はピッチ角のマイナス記号は m に置換)。
+*   **COLMAP Rigモード(PNG/JPEGのみ):**
+    *   `colmap_rig/images/rig1/camXX/<session>_frame_00001.png` (または `.jpg`) に共通フレーム名で保存されます。
+    *   `<session>` は入力動画名から自動生成され、必要に応じて `_02`, `_03`… が付与されます。
+    *   `colmap_rig/rig_config.json` が生成されます。
 
 ---
 
