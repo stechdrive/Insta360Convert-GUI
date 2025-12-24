@@ -274,7 +274,16 @@ This entire section is provided by the "Advanced Yaw Selector" module.
             *   **Preset:** Specifies the encoding speed vs. compression balance (e.g., `medium`, `slow`). Default is `medium`.
             *   **CQ/CRF:** Specifies the encoding quality. Lower values mean higher quality (and larger files). Range 0-51, typically 15-28. Default is `18`. (Handled as CQ for CUDA, CRF for CPU).
 
-**4.4. Controls and Progress**  
+**4.4. COLMAP Pipeline**
+
+*   **COLMAP Rig Folder:** Select the `colmap_rig` folder (must contain `images/` and `rig_config.json`).
+*   **COLMAP Executable:** Path to `colmap.exe` (or `colmap` on macOS/Linux).
+*   **Matcher:** Choose `sequential` for video-style matching or `exhaustive` for full pair matching.
+*   **Postshot Output:** Output folder for Postshot-ready data. Default is `<colmap_rig>/postshot`.
+*   **Database:** `database.db` is created inside the COLMAP Rig folder. Existing DB requires confirmation to overwrite.
+*   **Run COLMAP:** Executes feature_extractor → rig_configurator → matcher → mapper → image_undistorter.
+
+**4.5. Controls and Progress**  
 
 *   **Parallel Processes:**  Specify the number of viewpoints to process simultaneously (number of FFmpeg processes). Selectable from 1 up to the number of logical CPU cores on your PC. The default value is automatically set based on the total number of pitch angles in the "Output Pitch Angle List" (capped by the PC's logical core count). This default updates if you change the number of pitch angles. Increasing this may speed up processing but also increases CPU load and memory usage. The optimal value varies by environment; manual adjustment may be beneficial.  
 
@@ -289,7 +298,7 @@ This entire section is provided by the "Advanced Yaw Selector" module.
     *   **Application Log Tab:** Displays start/completion messages, settings, messages from the application, error information, etc.
     *   **FFmpeg Output Log Tab:** Displays detailed messages from FFmpeg during command execution (version info, encoding progress, etc.). Useful for in-depth troubleshooting if problems occur.  
 
-**4.5. Menu Bar**
+**4.6. Menu Bar**
 
 The application window includes a menu bar at the top.
 
@@ -389,7 +398,16 @@ The application window includes a menu bar at the top.
         *   **Preset:** エンコード速度と品質のバランス指定(例: `medium`, `slow`)。デフォルト`medium`。
         *   **CQ/CRF:** エンコード品質指定。数値が低いほど高品質(ファイルサイズ大)。0～51の範囲、通常15～28程度。デフォルト`18`(CUDAはCQ, CPUはCRFとして扱われる)。
 
-**4.4. コントロールと進捗**
+**4.4. COLMAPパイプライン**
+
+*   **COLMAP Rigフォルダ:** `colmap_rig` フォルダを選択（`images/` と `rig_config.json` が必要）。
+*   **COLMAP実行ファイル:** `colmap.exe`（または macOS/Linux では `colmap`）のパス。
+*   **Matcher:** `sequential`（動画向け）または `exhaustive`（全組み合わせ、重いが繋がりやすい）を選択。
+*   **Postshot出力先:** Postshot用データの出力先。デフォルトは `<colmap_rig>/postshot`。
+*   **Database:** `database.db` は COLMAP Rigフォルダ内に作成。既存DBは上書き確認あり。
+*   **COLMAP実行:** feature_extractor → rig_configurator → matcher → mapper → image_undistorter を実行。
+
+**4.5. コントロールと進捗**
 *   **並列処理数:** 同時に処理する視点の数(FFmpegプロセス数)を指定。PCのCPUコア数に応じ1から最大論理コア数まで選択可。デフォルト値は「出力するピッチ角リスト」のピッチ角総数(PC論理コア数上限)に自動設定され、ピッチ角数変更に追随。値を大きくすると処理が速くなる可能性があるがCPU負荷やメモリ使用量が増加。最適値は環境依存のため手動調整も可。
 *   **変換開始ボタン:** 全設定確認後、クリックで変換処理開始。
 *   **中止ボタン:** 変換処理中にクリックで処理中断。
@@ -402,7 +420,7 @@ The application window includes a menu bar at the top.
     *   **アプリケーションログタブ:** 処理開始/完了、設定内容、アプリからのメッセージ、エラー情報等表示。
     *   **FFmpeg出力ログタブ:** FFmpegコマンド実行時の詳細メッセージ(バージョン情報、エンコード進捗等)表示。問題発生時の詳細調査に役立つ。
 
-**4.5. メニューバー**  
+**4.6. メニューバー**  
 アプリケーションウィンドウの上部にはメニューバーがあります。
 
 *   **言語 (Language) メニュー:**

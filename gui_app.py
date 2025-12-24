@@ -7,6 +7,7 @@ import subprocess
 import os
 import json
 import time
+import shutil
 from datetime import timedelta
 import multiprocessing
 import threading # For background update check
@@ -80,6 +81,12 @@ class Insta360ConvertGUI(tk.Tk):
         self.cq_var = tk.StringVar(value="18")
         self.png_pred_var = tk.StringVar()
         self.jpeg_quality_var = tk.StringVar(value="90")
+        self.colmap_rig_folder_var = tk.StringVar()
+        self.colmap_postshot_folder_var = tk.StringVar()
+        self.colmap_matcher_var = tk.StringVar(value="sequential")
+        default_colmap_exec = "colmap.exe" if os.name == 'nt' else "colmap"
+        self.colmap_exec_path_var = tk.StringVar(value=default_colmap_exec)
+        self.colmap_matcher_options = ["sequential", "exhaustive"]
 
         self.ffmpeg_path = "ffmpeg"
         self.ffprobe_path = "ffprobe"
@@ -93,6 +100,11 @@ class Insta360ConvertGUI(tk.Tk):
         self.progress_queue_mp = None
         self.cancel_event_mp = None
         self.manager_mp = None
+        self.colmap_thread = None
+        self.colmap_cancel_event = None
+        self.colmap_active_process = None
+        self.colmap_running = False
+        self.colmap_postshot_default = ""
 
         self.active_tasks_count = 0
         self.completed_tasks_count = 0
@@ -130,6 +142,7 @@ class Insta360ConvertGUI(tk.Tk):
         self.check_cuda_availability()
         self.update_time_label_display()
         self.update_parallel_options_and_default()
+        self.update_colmap_controls_state()
 
 
     def _rebuild_menus(self):
@@ -393,6 +406,42 @@ class Insta360ConvertGUI(tk.Tk):
         self.progress_bar = ttk.Progressbar(self.progress_display_frame, orient="horizontal", length=200, mode="determinate")
         self.progress_bar.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
 
+        self.colmap_pipeline_frame = ttk.LabelFrame(bottom_content_frame, text="", padding="5")
+        self.colmap_pipeline_frame.pack(fill=tk.X, pady=2, side=tk.TOP)
+        self.colmap_rig_label = ttk.Label(self.colmap_pipeline_frame, text="")
+        self.colmap_rig_label.grid(row=0, column=0, padx=5, pady=2, sticky=tk.W)
+        self.colmap_rig_entry = ttk.Entry(self.colmap_pipeline_frame, textvariable=self.colmap_rig_folder_var, width=45)
+        self.colmap_rig_entry.grid(row=0, column=1, padx=(0, 5), pady=2, sticky=tk.EW, columnspan=3)
+        self.colmap_rig_browse = ttk.Button(self.colmap_pipeline_frame, text="", command=self.browse_colmap_rig_folder)
+        self.colmap_rig_browse.grid(row=0, column=4, padx=5, pady=2, sticky=tk.W)
+
+        self.colmap_exec_label = ttk.Label(self.colmap_pipeline_frame, text="")
+        self.colmap_exec_label.grid(row=1, column=0, padx=5, pady=2, sticky=tk.W)
+        self.colmap_exec_entry = ttk.Entry(self.colmap_pipeline_frame, textvariable=self.colmap_exec_path_var, width=45)
+        self.colmap_exec_entry.grid(row=1, column=1, padx=(0, 5), pady=2, sticky=tk.EW, columnspan=3)
+        self.colmap_exec_browse = ttk.Button(self.colmap_pipeline_frame, text="", command=self.browse_colmap_exec_path)
+        self.colmap_exec_browse.grid(row=1, column=4, padx=5, pady=2, sticky=tk.W)
+
+        self.colmap_matcher_label = ttk.Label(self.colmap_pipeline_frame, text="")
+        self.colmap_matcher_label.grid(row=2, column=0, padx=5, pady=2, sticky=tk.W)
+        self.colmap_matcher_combo = ttk.Combobox(self.colmap_pipeline_frame, textvariable=self.colmap_matcher_var,
+                                                 values=self.colmap_matcher_options, width=12, state="readonly")
+        self.colmap_matcher_combo.grid(row=2, column=1, padx=(0, 5), pady=2, sticky=tk.W)
+
+        self.colmap_postshot_label = ttk.Label(self.colmap_pipeline_frame, text="")
+        self.colmap_postshot_label.grid(row=2, column=2, padx=5, pady=2, sticky=tk.W)
+        self.colmap_postshot_entry = ttk.Entry(self.colmap_pipeline_frame, textvariable=self.colmap_postshot_folder_var, width=35)
+        self.colmap_postshot_entry.grid(row=2, column=3, padx=(0, 5), pady=2, sticky=tk.EW)
+        self.colmap_postshot_browse = ttk.Button(self.colmap_pipeline_frame, text="", command=self.browse_postshot_folder)
+        self.colmap_postshot_browse.grid(row=2, column=4, padx=5, pady=2, sticky=tk.W)
+
+        self.colmap_run_button = ttk.Button(self.colmap_pipeline_frame, text="", command=self.start_colmap_pipeline)
+        self.colmap_run_button.grid(row=3, column=0, padx=5, pady=(4, 2), sticky=tk.W)
+        self.colmap_cancel_button = ttk.Button(self.colmap_pipeline_frame, text="", command=self.cancel_colmap_pipeline, state="disabled")
+        self.colmap_cancel_button.grid(row=3, column=1, padx=5, pady=(4, 2), sticky=tk.W)
+        self.colmap_pipeline_frame.columnconfigure(1, weight=1)
+        self.colmap_pipeline_frame.columnconfigure(3, weight=1)
+
         self.log_notebook = ttk.Notebook(bottom_content_frame, padding=2)
         self.log_notebook.pack(expand=True, fill=tk.BOTH, pady=(2,5), side=tk.TOP)
 
@@ -466,6 +515,16 @@ class Insta360ConvertGUI(tk.Tk):
         self.output_mode_label.config(text=S.get("output_mode_label"))
         self.output_mode_standard_radio.config(text=S.get("output_mode_standard_label"))
         self.output_mode_colmap_radio.config(text=S.get("output_mode_colmap_label"))
+        self.colmap_pipeline_frame.config(text=S.get("colmap_pipeline_label"))
+        self.colmap_rig_label.config(text=S.get("colmap_rig_folder_label"))
+        self.colmap_exec_label.config(text=S.get("colmap_exec_label"))
+        self.colmap_matcher_label.config(text=S.get("colmap_matcher_label"))
+        self.colmap_postshot_label.config(text=S.get("colmap_postshot_output_label"))
+        self.colmap_rig_browse.config(text=S.get("browse_button"))
+        self.colmap_exec_browse.config(text=S.get("browse_button"))
+        self.colmap_postshot_browse.config(text=S.get("browse_button"))
+        self.colmap_run_button.config(text=S.get("colmap_run_button_label"))
+        self.colmap_cancel_button.config(text=S.get("colmap_cancel_button_label"))
         self.png_radio.config(text=S.get("png_radio_label"))
         self.png_interval_label.config(text=S.get("png_interval_label"))
         self.png_pred_label.config(text=S.get("png_prediction_label"))
@@ -528,6 +587,20 @@ class Insta360ConvertGUI(tk.Tk):
         self.add_tooltip_managed(self.output_mode_label, "output_mode_label_tooltip")
         self.add_tooltip_managed(self.output_mode_standard_radio, "output_mode_standard_tooltip")
         self.add_tooltip_managed(self.output_mode_colmap_radio, "output_mode_colmap_tooltip")
+        self.add_tooltip_managed(self.colmap_pipeline_frame, "colmap_pipeline_tooltip")
+        self.add_tooltip_managed(self.colmap_rig_label, "colmap_rig_folder_tooltip")
+        self.add_tooltip_managed(self.colmap_rig_entry, "colmap_rig_folder_tooltip")
+        self.add_tooltip_managed(self.colmap_rig_browse, "colmap_rig_folder_browse_tooltip")
+        self.add_tooltip_managed(self.colmap_exec_label, "colmap_exec_tooltip")
+        self.add_tooltip_managed(self.colmap_exec_entry, "colmap_exec_tooltip")
+        self.add_tooltip_managed(self.colmap_exec_browse, "colmap_exec_browse_tooltip")
+        self.add_tooltip_managed(self.colmap_matcher_label, "colmap_matcher_tooltip")
+        self.add_tooltip_managed(self.colmap_matcher_combo, "colmap_matcher_tooltip")
+        self.add_tooltip_managed(self.colmap_postshot_label, "colmap_postshot_output_tooltip")
+        self.add_tooltip_managed(self.colmap_postshot_entry, "colmap_postshot_output_tooltip")
+        self.add_tooltip_managed(self.colmap_postshot_browse, "colmap_postshot_output_browse_tooltip")
+        self.add_tooltip_managed(self.colmap_run_button, "colmap_run_button_tooltip")
+        self.add_tooltip_managed(self.colmap_cancel_button, "colmap_cancel_button_tooltip")
         self.add_tooltip_managed(self.png_radio, "png_radio_tooltip")
         self.add_tooltip_managed(self.png_interval_label, "png_interval_label_tooltip")
         self.add_tooltip_managed(self.png_frame_interval_entry, "png_frame_interval_entry_tooltip")
@@ -556,6 +629,7 @@ class Insta360ConvertGUI(tk.Tk):
         if self.yaw_selector_widget and hasattr(self.yaw_selector_widget, 'update_ui_texts_for_language_switch'):
             self.yaw_selector_widget.update_ui_texts_for_language_switch()
         self.update_output_format_options()
+        self.update_colmap_controls_state()
 
 
     def on_yaw_selector_updated(self):
@@ -809,6 +883,33 @@ class Insta360ConvertGUI(tk.Tk):
             self.output_folder_var.set(folder_path)
             self.log_message_ui("log_output_folder_selected", "INFO", is_key=True, folderpath=folder_path)
 
+    def browse_colmap_rig_folder(self):
+        folder_path = filedialog.askdirectory(title=S.get("colmap_rig_folder_browse_title"))
+        if folder_path:
+            self.colmap_rig_folder_var.set(folder_path)
+            self._update_postshot_default_for_rig(folder_path)
+            self.log_message_ui("log_colmap_rig_folder_selected_format", "INFO", is_key=True, folderpath=folder_path)
+
+    def browse_colmap_exec_path(self):
+        file_path = filedialog.askopenfilename(title=S.get("colmap_exec_browse_title"))
+        if file_path:
+            self.colmap_exec_path_var.set(file_path)
+            self.log_message_ui("log_colmap_exec_selected_format", "INFO", is_key=True, filepath=file_path)
+
+    def browse_postshot_folder(self):
+        folder_path = filedialog.askdirectory(title=S.get("colmap_postshot_output_browse_title"))
+        if folder_path:
+            self.colmap_postshot_folder_var.set(folder_path)
+            self.colmap_postshot_default = folder_path
+            self.log_message_ui("log_colmap_postshot_folder_selected_format", "INFO", is_key=True, folderpath=folder_path)
+
+    def _update_postshot_default_for_rig(self, rig_folder):
+        default_postshot = os.path.join(rig_folder, "postshot")
+        current_postshot = self.colmap_postshot_folder_var.get()
+        if not current_postshot or current_postshot == self.colmap_postshot_default:
+            self.colmap_postshot_default = default_postshot
+            self.colmap_postshot_folder_var.set(default_postshot)
+
     def get_video_info(self, filepath): # pylint: disable=too-many-branches
         try:
             cmd = [self.ffprobe_path, "-v", "error", "-select_streams", "v:0",
@@ -900,6 +1001,24 @@ class Insta360ConvertGUI(tk.Tk):
         self.preset_combo.config(state=readonly_state_if_not_converting if selected_format == "video" else disabled_state_always)
         self.cq_entry.config(state=normal_state_if_not_converting if selected_format == "video" else disabled_state_always)
 
+    def update_colmap_controls_state(self):
+        colmap_enabled = not self.conversion_pool and not self.colmap_running
+        entry_state = tk.NORMAL if colmap_enabled else tk.DISABLED
+        browse_state = tk.NORMAL if colmap_enabled else tk.DISABLED
+        matcher_state = "readonly" if colmap_enabled else tk.DISABLED
+        run_state = tk.NORMAL if colmap_enabled else tk.DISABLED
+        cancel_state = tk.NORMAL if self.colmap_running else tk.DISABLED
+
+        self.colmap_rig_entry.config(state=entry_state)
+        self.colmap_rig_browse.config(state=browse_state)
+        self.colmap_exec_entry.config(state=entry_state)
+        self.colmap_exec_browse.config(state=browse_state)
+        self.colmap_matcher_combo.config(state=matcher_state)
+        self.colmap_postshot_entry.config(state=entry_state)
+        self.colmap_postshot_browse.config(state=browse_state)
+        self.colmap_run_button.config(state=run_state)
+        self.colmap_cancel_button.config(state=cancel_state)
+
     def validate_inputs(self): # pylint: disable=too-many-return-statements, too-many-branches
         if not (self.input_file_var.get() and os.path.isfile(self.input_file_var.get())):
             self.log_message_ui("validate_error_input_file_invalid", "ERROR", is_key=True); return False
@@ -941,6 +1060,221 @@ class Insta360ConvertGUI(tk.Tk):
         except Exception as e: # pylint: disable=broad-except
             self.log_message_ui("validate_error_resolution_general_format", "ERROR", is_key=True, error=str(e)); return False
         return True
+
+    def resolve_colmap_executable(self):
+        raw_path = self.colmap_exec_path_var.get().strip()
+        if not raw_path:
+            raw_path = "colmap.exe" if os.name == 'nt' else "colmap"
+        if os.path.isfile(raw_path):
+            return raw_path
+        resolved = shutil.which(raw_path)
+        return resolved
+
+    def validate_colmap_pipeline_inputs(self):
+        rig_folder = self.colmap_rig_folder_var.get().strip()
+        if not rig_folder or not os.path.isdir(rig_folder):
+            self.log_message_ui("log_colmap_pipeline_invalid_rig_folder_format", "ERROR", is_key=True, path=rig_folder)
+            return None
+        images_dir = os.path.join(rig_folder, "images")
+        if not os.path.isdir(images_dir):
+            self.log_message_ui("log_colmap_pipeline_missing_images_format", "ERROR", is_key=True, path=images_dir)
+            return None
+        rig_config = os.path.join(rig_folder, "rig_config.json")
+        if not os.path.isfile(rig_config):
+            self.log_message_ui("log_colmap_pipeline_missing_rig_config_format", "ERROR", is_key=True, path=rig_config)
+            return None
+        colmap_exec = self.resolve_colmap_executable()
+        if not colmap_exec:
+            self.log_message_ui("log_colmap_pipeline_colmap_not_found_format", "ERROR", is_key=True,
+                                path=self.colmap_exec_path_var.get().strip())
+            return None
+        postshot_output = self.colmap_postshot_folder_var.get().strip()
+        if not postshot_output:
+            postshot_output = os.path.join(rig_folder, "postshot")
+            self.colmap_postshot_default = postshot_output
+            self.colmap_postshot_folder_var.set(postshot_output)
+        matcher = self.colmap_matcher_var.get().strip() or "sequential"
+        if matcher not in self.colmap_matcher_options:
+            matcher = "sequential"
+            self.colmap_matcher_var.set(matcher)
+        return {
+            "rig_folder": rig_folder,
+            "images_dir": images_dir,
+            "rig_config": rig_config,
+            "colmap_exec": colmap_exec,
+            "postshot_output": postshot_output,
+            "matcher": matcher
+        }
+
+    def log_message_ui_threadsafe(self, message_key_or_literal, level="INFO", is_key=False, *args, **kwargs):
+        self.after(0, lambda: self.log_message_ui(message_key_or_literal, level, is_key, *args, **kwargs))
+
+    def start_colmap_pipeline(self):
+        if self.conversion_pool:
+            self.log_message_ui("log_colmap_pipeline_blocked_by_conversion", "WARNING", is_key=True); return
+        if self.colmap_running:
+            self.log_message_ui("log_colmap_pipeline_already_running", "WARNING", is_key=True); return
+        config = self.validate_colmap_pipeline_inputs()
+        if not config:
+            return
+        rig_folder = config["rig_folder"]
+        db_path = os.path.join(rig_folder, "database.db")
+        if os.path.exists(db_path):
+            if not messagebox.askyesno(S.get("confirm_colmap_overwrite_db_title"),
+                                       S.get("confirm_colmap_overwrite_db_message_format", path=db_path), parent=self):
+                self.log_message_ui("log_colmap_pipeline_cancelled", "INFO", is_key=True); return
+            try:
+                os.remove(db_path)
+                self.log_message_ui("log_colmap_pipeline_db_removed_format", "INFO", is_key=True, path=db_path)
+            except OSError as e:
+                self.log_message_ui("log_colmap_pipeline_db_remove_failed_format", "ERROR", is_key=True, error=str(e))
+                return
+        sparse_dir = os.path.join(rig_folder, "sparse")
+        if os.path.isfile(sparse_dir):
+            self.log_message_ui("log_colmap_pipeline_sparse_path_invalid_format", "ERROR", is_key=True, path=sparse_dir)
+            return
+        os.makedirs(sparse_dir, exist_ok=True)
+        postshot_output = config["postshot_output"]
+        if os.path.isdir(postshot_output) and os.listdir(postshot_output):
+            if not messagebox.askyesno(S.get("confirm_colmap_overwrite_postshot_title"),
+                                       S.get("confirm_colmap_overwrite_postshot_message_format", path=postshot_output), parent=self):
+                self.log_message_ui("log_colmap_pipeline_cancelled", "INFO", is_key=True); return
+        os.makedirs(postshot_output, exist_ok=True)
+
+        self.colmap_cancel_event = threading.Event()
+        self.colmap_running = True
+        self.update_colmap_controls_state()
+        self.log_message_ui("log_colmap_pipeline_start_format", "INFO", is_key=True,
+                            rig_folder=rig_folder, matcher=config["matcher"], postshot_output=postshot_output)
+        self.colmap_thread = threading.Thread(target=self._run_colmap_pipeline_thread, args=(config,), daemon=True)
+        self.colmap_thread.start()
+
+    def cancel_colmap_pipeline(self):
+        if self.colmap_cancel_event and not self.colmap_cancel_event.is_set():
+            self.colmap_cancel_event.set()
+            if self.colmap_active_process and self.colmap_active_process.poll() is None:
+                try:
+                    self.colmap_active_process.terminate()
+                except Exception: # pylint: disable=broad-except
+                    pass
+            self.log_message_ui("log_colmap_pipeline_cancel_requested", "INFO", is_key=True)
+
+    def _run_colmap_pipeline_thread(self, config):
+        try:
+            rig_folder = config["rig_folder"]
+            colmap_exec = config["colmap_exec"]
+            images_dir = config["images_dir"]
+            rig_config = config["rig_config"]
+            db_path = os.path.join(rig_folder, "database.db")
+            sparse_dir = os.path.join(rig_folder, "sparse")
+
+            feature_cmd = [
+                colmap_exec, "feature_extractor",
+                "--database_path", db_path,
+                "--image_path", images_dir,
+                "--ImageReader.single_camera_per_folder", "1",
+                "--ImageReader.camera_model", "PINHOLE"
+            ]
+            rig_cmd = [
+                colmap_exec, "rig_configurator",
+                "--database_path", db_path,
+                "--rig_config_path", rig_config
+            ]
+            if config["matcher"] == "exhaustive":
+                matcher_cmd = [colmap_exec, "exhaustive_matcher", "--database_path", db_path]
+            else:
+                matcher_cmd = [colmap_exec, "sequential_matcher", "--database_path", db_path]
+            mapper_cmd = [
+                colmap_exec, "mapper",
+                "--database_path", db_path,
+                "--image_path", images_dir,
+                "--output_path", sparse_dir,
+                "--Mapper.ba_refine_sensor_from_rig", "0"
+            ]
+
+            if not self._run_colmap_command(feature_cmd): return
+            if not self._run_colmap_command(rig_cmd): return
+            if not self._run_colmap_command(matcher_cmd): return
+            if not self._run_colmap_command(mapper_cmd): return
+
+            sparse_model_dir = self._find_latest_sparse_model_dir(sparse_dir)
+            if not sparse_model_dir:
+                self.log_message_ui_threadsafe("log_colmap_pipeline_sparse_not_found_format", "ERROR", is_key=True, path=sparse_dir)
+                return
+
+            postshot_output = config["postshot_output"]
+            undistorter_cmd = [
+                colmap_exec, "image_undistorter",
+                "--image_path", images_dir,
+                "--input_path", sparse_model_dir,
+                "--output_path", postshot_output,
+                "--output_type", "COLMAP"
+            ]
+            if not self._run_colmap_command(undistorter_cmd): return
+
+            self.log_message_ui_threadsafe("log_colmap_pipeline_completed_format", "INFO", is_key=True, path=postshot_output)
+        finally:
+            self.colmap_running = False
+            self.colmap_active_process = None
+            self.after(0, self.update_colmap_controls_state)
+
+    def _run_colmap_command(self, command):
+        if self.colmap_cancel_event and self.colmap_cancel_event.is_set():
+            self.log_message_ui_threadsafe("log_colmap_pipeline_cancelled", "INFO", is_key=True)
+            return False
+        command_str = subprocess.list2cmdline(command) if os.name == 'nt' else " ".join(command)
+        self.log_message_ui_threadsafe("log_colmap_pipeline_command_format", "DEBUG", is_key=True, command=command_str)
+        startupinfo = self.get_startupinfo()
+        try:
+            self.colmap_active_process = subprocess.Popen(
+                command,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                universal_newlines=True,
+                startupinfo=startupinfo
+            )
+            if self.colmap_active_process.stdout:
+                for line in self.colmap_active_process.stdout:
+                    if self.colmap_cancel_event and self.colmap_cancel_event.is_set():
+                        self.colmap_active_process.terminate()
+                        try:
+                            self.colmap_active_process.wait(timeout=5)
+                        except Exception: # pylint: disable=broad-except
+                            try: self.colmap_active_process.kill()
+                            except Exception: # pylint: disable=broad-except
+                                pass
+                        self.log_message_ui_threadsafe("log_colmap_pipeline_cancelled", "INFO", is_key=True)
+                        return False
+                    clean_line = line.strip()
+                    if clean_line:
+                        self.log_message_ui_threadsafe(f"COLMAP: {clean_line}", "DEBUG")
+            self.colmap_active_process.wait()
+            if self.colmap_active_process.returncode != 0:
+                self.log_message_ui_threadsafe("log_colmap_pipeline_command_failed_format", "ERROR", is_key=True,
+                                               code=self.colmap_active_process.returncode, command=command_str)
+                return False
+            return True
+        except Exception as e: # pylint: disable=broad-except
+            self.log_message_ui_threadsafe("log_colmap_pipeline_command_exception_format", "ERROR", is_key=True,
+                                           command=command_str, error=str(e))
+            return False
+        finally:
+            if self.colmap_active_process and self.colmap_active_process.stdout:
+                self.colmap_active_process.stdout.close()
+            self.colmap_active_process = None
+
+    def _find_latest_sparse_model_dir(self, sparse_root):
+        if not os.path.isdir(sparse_root):
+            return None
+        model_ids = []
+        for entry in os.listdir(sparse_root):
+            entry_path = os.path.join(sparse_root, entry)
+            if os.path.isdir(entry_path) and entry.isdigit():
+                model_ids.append(int(entry))
+        if not model_ids:
+            return None
+        latest_id = max(model_ids)
+        return os.path.join(sparse_root, str(latest_id))
 
     def calculate_viewpoints(self):
         if self.yaw_selector_widget:
@@ -994,6 +1328,7 @@ class Insta360ConvertGUI(tk.Tk):
                     for i in range(self.menubar.index(tk.END) + 1):
                          self.menubar.entryconfigure(i, state=new_state_normal)
             except tk.TclError: pass # Ignore if menu doesn't exist or has issues
+        self.update_colmap_controls_state()
 
 
     def run_cuda_compatibility_test(self): # pylint: disable=too-many-return-statements
@@ -1183,6 +1518,16 @@ class Insta360ConvertGUI(tk.Tk):
             self.cancel_event_mp.set(); self.cancel_button.config(state=tk.DISABLED)
 
     def on_closing(self):
+        if self.colmap_running:
+            if messagebox.askyesno(S.get("confirm_exit_while_colmap_title"),
+                                   S.get("confirm_exit_while_colmap_message"), parent=self):
+                self.cancel_colmap_pipeline()
+                if self.colmap_thread:
+                    try: self.colmap_thread.join(timeout=5)
+                    except Exception: # pylint: disable=broad-except
+                        pass
+            else:
+                return
         if self.conversion_pool and self.active_tasks_count > 0:
             if messagebox.askyesno(S.get("confirm_exit_while_converting_title"),
                                    S.get("confirm_exit_while_converting_message"), parent=self):
