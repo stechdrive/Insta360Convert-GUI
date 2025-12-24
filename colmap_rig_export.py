@@ -4,6 +4,7 @@
 import json
 import math
 import os
+import re
 
 COLMAP_RIG_DIRNAME = "colmap_rig"
 COLMAP_IMAGES_DIRNAME = "images"
@@ -11,6 +12,58 @@ DEFAULT_RIG_NAME = "rig1"
 DEFAULT_CAMERA_PREFIX = "cam"
 DEFAULT_FRAME_PREFIX = "frame"
 DEFAULT_FRAME_DIGITS = 5
+
+
+def sanitize_session_prefix(raw_name):
+    name = (raw_name or "").strip()
+    if not name:
+        return ""
+    sanitized_chars = []
+    for ch in name:
+        if ch.isascii() and (ch.isalnum() or ch in "-_"):
+            sanitized_chars.append(ch)
+        elif ch in (" ", ".", "+"):
+            sanitized_chars.append("_")
+        else:
+            sanitized_chars.append("_")
+    sanitized = "".join(sanitized_chars)
+    sanitized = re.sub(r"_+", "_", sanitized).strip("_")
+    return sanitized
+
+
+def _collect_existing_session_prefixes(output_folder, rig_name):
+    rig_root = os.path.join(colmap_images_root(output_folder), rig_name)
+    prefixes = set()
+    if not os.path.isdir(rig_root):
+        return prefixes
+    token = f"_{DEFAULT_FRAME_PREFIX}_"
+    for cam_name in os.listdir(rig_root):
+        cam_path = os.path.join(rig_root, cam_name)
+        if not os.path.isdir(cam_path):
+            continue
+        for entry in os.listdir(cam_path):
+            if not entry.lower().endswith((".png", ".jpg", ".jpeg")):
+                continue
+            stem = os.path.splitext(entry)[0]
+            if token in stem:
+                prefix = stem.split(token)[0]
+                if prefix:
+                    prefixes.add(prefix)
+    return prefixes
+
+
+def make_unique_session_prefix(output_folder, base_name, rig_name=DEFAULT_RIG_NAME):
+    base_prefix = sanitize_session_prefix(base_name)
+    if not base_prefix:
+        base_prefix = "session"
+    used_prefixes = _collect_existing_session_prefixes(output_folder, rig_name)
+    if base_prefix not in used_prefixes:
+        return base_prefix
+    for idx in range(2, 1000):
+        candidate = f"{base_prefix}_{idx:02d}"
+        if candidate not in used_prefixes:
+            return candidate
+    raise RuntimeError("Could not generate a unique session prefix for COLMAP Rig output.")
 
 
 def _viewpoint_sort_key(viewpoint):
@@ -55,8 +108,11 @@ def build_colmap_image_prefix(rig_name, camera_name):
     return f"{rig_name}/{camera_name}/"
 
 
-def build_frame_filename_pattern(file_ext, frame_prefix=DEFAULT_FRAME_PREFIX, frame_digits=DEFAULT_FRAME_DIGITS):
+def build_frame_filename_pattern(file_ext, frame_prefix=DEFAULT_FRAME_PREFIX, frame_digits=DEFAULT_FRAME_DIGITS,
+                                 session_prefix=""):
     ext = file_ext.lstrip(".")
+    if session_prefix:
+        return f"{session_prefix}_{frame_prefix}_%0{frame_digits}d.{ext}"
     return f"{frame_prefix}_%0{frame_digits}d.{ext}"
 
 

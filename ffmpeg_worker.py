@@ -79,6 +79,7 @@ def ffmpeg_worker_process(viewpoint_idx, viewpoint_data, config, log_queue_mp, p
         output_format = config["output_format"]
         output_mode = config.get("output_mode", "standard")
         colmap_rig_name = config.get("colmap_rig_name", DEFAULT_RIG_NAME)
+        colmap_session_prefix = config.get("colmap_session_prefix", "")
         frame_interval_val = config.get("frame_interval", 0) # Default to 0 if not present
         video_preset = config["video_preset"]
         video_cq = config["video_cq"]
@@ -183,7 +184,7 @@ def ffmpeg_worker_process(viewpoint_idx, viewpoint_data, config, log_queue_mp, p
                 file_ext = "jpg" if output_format == "jpeg" else "png"
                 output_filename_pattern = os.path.join(
                     output_dir_for_viewpoint,
-                    build_frame_filename_pattern(file_ext)
+                    build_frame_filename_pattern(file_ext, session_prefix=colmap_session_prefix)
                 )
             else:
                 img_type_suffix = '_jpeg' if output_format == 'jpeg' else '_png' # More explicit suffix

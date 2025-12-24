@@ -26,6 +26,7 @@ from ffmpeg_worker import ffmpeg_worker_process, check_for_cuda_fallback_error
 from advanced_yaw_selector import AdvancedYawSelector
 from colmap_rig_export import (
     DEFAULT_RIG_NAME,
+    make_unique_session_prefix,
     prepare_viewpoints_for_colmap,
     write_rig_config_json
 )
@@ -1055,6 +1056,15 @@ class Insta360ConvertGUI(tk.Tk):
         if output_mode == "colmap_rig":
             viewpoints = prepare_viewpoints_for_colmap(viewpoints)
         if not viewpoints: self.log_message_ui("log_conversion_cannot_start_no_viewpoints", "ERROR", is_key=True); return
+        colmap_session_prefix = ""
+        if output_mode == "colmap_rig":
+            base_name = os.path.splitext(os.path.basename(self.input_file_var.get()))[0]
+            try:
+                colmap_session_prefix = make_unique_session_prefix(self.output_folder_var.get(), base_name, DEFAULT_RIG_NAME)
+            except Exception as e: # pylint: disable=broad-except
+                self.log_message_ui("log_colmap_rig_session_prefix_error_format", "ERROR", is_key=True, error=str(e))
+                return
+            self.log_message_ui("log_colmap_rig_session_prefix_format", "INFO", is_key=True, prefix=colmap_session_prefix)
         self.cuda_checked_for_high_res_compatibility = False; self.cuda_fallback_triggered_for_high_res = False
         self.cuda_compatibility_confirmed_for_high_res = False
         is_high_res_input = (self.video_width > HIGH_RESOLUTION_THRESHOLD or self.video_height > HIGH_RESOLUTION_THRESHOLD)
@@ -1117,6 +1127,7 @@ class Insta360ConvertGUI(tk.Tk):
             "interp": self.interp_var.get(), "threads_ffmpeg": int(os.cpu_count() or 1),
             "use_cuda": effective_use_cuda, "output_format": self.output_format_var.get(),
             "output_mode": output_mode, "colmap_rig_name": DEFAULT_RIG_NAME,
+            "colmap_session_prefix": colmap_session_prefix,
             "frame_interval": frame_interval_for_worker, "video_preset": self.preset_var.get(),
             "video_cq": self.cq_var.get(), "png_pred_option": self.png_pred_options_map.get(self.png_pred_var.get(), "3"),
             "jpeg_quality": jpeg_quality_for_worker

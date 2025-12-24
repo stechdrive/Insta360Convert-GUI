@@ -256,7 +256,7 @@ This entire section is provided by the "Advanced Yaw Selector" module.
         *   `nearest`: Fastest, but lowest quality (prone to blockiness and aliasing).
 *   **Export Mode:**
     *   **Standard:** Uses the existing per-viewpoint folder/file naming.
-    *   **COLMAP Rig:** Outputs under `<Output Folder>/colmap_rig/images/rig1/camXX/frame_00001.png` (or `.jpg`) and writes `<Output Folder>/colmap_rig/rig_config.json`. Video output is disabled (PNG/JPEG only).
+    *   **COLMAP Rig:** Outputs under `<Output Folder>/colmap_rig/images/rig1/camXX/<session>_frame_00001.png` (or `.jpg`) and writes `<Output Folder>/colmap_rig/rig_config.json`. The `<session>` prefix is auto-generated from the input video name and `_02`, `_03`... are appended if needed. Video output is disabled (PNG/JPEG only).
 *   **Output Format Radio Buttons and Options:**
     *   *【Recommended】 For photogrammetry software (e.g., Reality Capture), selecting "PNG Sequence" is recommended.*
     *   *In COLMAP Rig mode, video output is disabled. Use PNG/JPEG sequences.*
@@ -371,7 +371,7 @@ The application window includes a menu bar at the top.
         *   `nearest`: 最も高速だが画質最低(ブロックノイズやジャギーが出やすい)。
 *   **書き出しモード:**
     *   **標準:** 従来の視点ごとのフォルダ/ファイル構成で出力。
-    *   **COLMAP Rig:** `<出力フォルダ>/colmap_rig/images/rig1/camXX/frame_00001.png` (または `.jpg`) と `<出力フォルダ>/colmap_rig/rig_config.json` を書き出し。動画出力は無効（PNG/JPEGのみ）。
+    *   **COLMAP Rig:** `<出力フォルダ>/colmap_rig/images/rig1/camXX/<session>_frame_00001.png` (または `.jpg`) と `<出力フォルダ>/colmap_rig/rig_config.json` を書き出し。`<session>` は入力動画名から自動生成され、必要に応じて `_02`, `_03`… が付与されます。動画出力は無効（PNG/JPEGのみ）。
 *   **出力形式ラジオボタンとオプション:**
 *   *【推奨】フォトグラメトリソフト(Reality Capture等)で使用する場合、「PNGシーケンス」を推奨。*
 *   *COLMAP Rigモードでは動画出力は無効です。PNG/JPEGのみ選択してください。*
@@ -426,7 +426,8 @@ Folders (for image sequences) or files (for videos) with names like the followin
     *   **For Videos:**
         *   A video file named `[OriginalVideoFileName]_pXXX_yYYY.mp4` is created for each viewpoint combination (XXX format is the same as for image sequences).
 *   **COLMAP Rig Mode (PNG/JPEG only):**
-    *   Images are saved as `colmap_rig/images/rig1/camXX/frame_00001.png` (or `.jpg`) with the same frame name across cameras.
+    *   Images are saved as `colmap_rig/images/rig1/camXX/<session>_frame_00001.png` (or `.jpg`) with the same frame name across cameras.
+    *   The `<session>` prefix is auto-generated from the input video name and `_02`, `_03`... are appended if needed.
     *   `colmap_rig/rig_config.json` is generated for rig_configurator.
 
 **[日本語] 5. 出力結果**
@@ -442,7 +443,8 @@ Folders (for image sequences) or files (for videos) with names like the followin
     *   **動画の場合:**
         *   元の動画ファイル名_pXXX_yYYY.mp4 という名前の動画ファイルが、指定した視点の組み合わせごとに作成されます (XXX はピッチ角のマイナス記号は m に置換)。
 *   **COLMAP Rigモード(PNG/JPEGのみ):**
-    *   `colmap_rig/images/rig1/camXX/frame_00001.png` (または `.jpg`) に共通フレーム名で保存されます。
+    *   `colmap_rig/images/rig1/camXX/<session>_frame_00001.png` (または `.jpg`) に共通フレーム名で保存されます。
+    *   `<session>` は入力動画名から自動生成され、必要に応じて `_02`, `_03`… が付与されます。
     *   `colmap_rig/rig_config.json` が生成されます。
 
 ---
