@@ -24,6 +24,11 @@ from constants import (
 from tooltip_utils import ToolTip
 from ffmpeg_worker import ffmpeg_worker_process, check_for_cuda_fallback_error
 from advanced_yaw_selector import AdvancedYawSelector
+from colmap_rig_export import (
+    DEFAULT_RIG_NAME,
+    prepare_viewpoints_for_colmap,
+    write_rig_config_json
+)
 
 try:
     from update_checker import check_for_updates_background
@@ -67,6 +72,7 @@ class Insta360ConvertGUI(tk.Tk):
         self.cuda_var = tk.BooleanVar(value=False)
         self.interp_options = ["linear", "cubic", "lanczos", "nearest"]
         self.interp_var = tk.StringVar(value="cubic")
+        self.output_mode_var = tk.StringVar(value="standard")
         self.output_format_var = tk.StringVar(value="png")
         self.frame_interval_var = tk.StringVar(value="1.00")
         self.preset_var = tk.StringVar(value=DEFAULT_PRESET)
@@ -105,6 +111,7 @@ class Insta360ConvertGUI(tk.Tk):
         self.avg_time_per_viewpoint_for_estimation = 0
         self.overall_remaining_seconds_at_last_avg_calculation = None
         self.timestamp_of_last_avg_calculation = None
+        self.colmap_rig_context = None
 
         self.yaw_selector_widget = None
         self.tooltips = []
@@ -283,6 +290,17 @@ class Insta360ConvertGUI(tk.Tk):
                                          values=self.interp_options, width=10, state="readonly")
         self.interp_combo.pack(side=tk.LEFT, padx=(0,5), pady=2)
 
+        output_mode_frame = ttk.Frame(self.output_settings_frame)
+        output_mode_frame.pack(fill=tk.X, pady=(5,2))
+        self.output_mode_label = ttk.Label(output_mode_frame, text="")
+        self.output_mode_label.pack(side=tk.LEFT, padx=(5,2))
+        self.output_mode_standard_radio = ttk.Radiobutton(output_mode_frame, text="", variable=self.output_mode_var,
+                                                          value="standard", command=self.update_output_format_options)
+        self.output_mode_standard_radio.pack(side=tk.LEFT, padx=(5,2))
+        self.output_mode_colmap_radio = ttk.Radiobutton(output_mode_frame, text="", variable=self.output_mode_var,
+                                                        value="colmap_rig", command=self.update_output_format_options)
+        self.output_mode_colmap_radio.pack(side=tk.LEFT, padx=(5,2))
+
         format_options_main_frame = ttk.Frame(self.output_settings_frame)
         format_options_main_frame.pack(fill=tk.X, pady=(5,2))
 
@@ -444,6 +462,9 @@ class Insta360ConvertGUI(tk.Tk):
 
         self.cuda_check.config(text=S.get("cuda_checkbox_label"))
         self.interp_label.config(text=S.get("interpolation_label"))
+        self.output_mode_label.config(text=S.get("output_mode_label"))
+        self.output_mode_standard_radio.config(text=S.get("output_mode_standard_label"))
+        self.output_mode_colmap_radio.config(text=S.get("output_mode_colmap_label"))
         self.png_radio.config(text=S.get("png_radio_label"))
         self.png_interval_label.config(text=S.get("png_interval_label"))
         self.png_pred_label.config(text=S.get("png_prediction_label"))
@@ -503,6 +524,9 @@ class Insta360ConvertGUI(tk.Tk):
         self.add_tooltip_managed(self.cuda_check, "cuda_checkbox_tooltip")
         self.add_tooltip_managed(self.interp_label, "interpolation_label_tooltip")
         self.add_tooltip_managed(self.interp_combo, "interpolation_combo_tooltip")
+        self.add_tooltip_managed(self.output_mode_label, "output_mode_label_tooltip")
+        self.add_tooltip_managed(self.output_mode_standard_radio, "output_mode_standard_tooltip")
+        self.add_tooltip_managed(self.output_mode_colmap_radio, "output_mode_colmap_tooltip")
         self.add_tooltip_managed(self.png_radio, "png_radio_tooltip")
         self.add_tooltip_managed(self.png_interval_label, "png_interval_label_tooltip")
         self.add_tooltip_managed(self.png_frame_interval_entry, "png_frame_interval_entry_tooltip")
@@ -858,10 +882,16 @@ class Insta360ConvertGUI(tk.Tk):
 
     def update_output_format_options(self, event=None): # pylint: disable=unused-argument
         selected_format = self.output_format_var.get()
+        selected_mode = self.output_mode_var.get()
         is_converting = bool(self.conversion_pool)
+        is_colmap_mode = selected_mode == "colmap_rig"
         normal_state_if_not_converting = tk.NORMAL if not is_converting else tk.DISABLED
         readonly_state_if_not_converting = "readonly" if not is_converting else tk.DISABLED
         disabled_state_always = tk.DISABLED
+        if is_colmap_mode and selected_format == "video":
+            self.output_format_var.set("png")
+            selected_format = "png"
+        self.video_radio.config(state=normal_state_if_not_converting if not is_colmap_mode else tk.DISABLED)
         self.png_frame_interval_entry.config(state=normal_state_if_not_converting if selected_format == "png" else disabled_state_always)
         self.png_pred_combo.config(state=readonly_state_if_not_converting if selected_format == "png" else disabled_state_always)
         self.jpeg_frame_interval_entry.config(state=normal_state_if_not_converting if selected_format == "jpeg" else disabled_state_always)
@@ -875,6 +905,8 @@ class Insta360ConvertGUI(tk.Tk):
         if not (self.output_folder_var.get() and os.path.isdir(self.output_folder_var.get())):
             self.log_message_ui("validate_error_output_folder_invalid", "ERROR", is_key=True); return False
         selected_format = self.output_format_var.get()
+        if self.output_mode_var.get() == "colmap_rig" and selected_format == "video":
+            self.log_message_ui("validate_error_colmap_video_not_supported", "ERROR", is_key=True); return False
         if selected_format in ["png", "jpeg"]:
             try:
                 interval = float(self.frame_interval_var.get())
@@ -942,6 +974,8 @@ class Insta360ConvertGUI(tk.Tk):
         else: self.custom_resolution_entry.config(state=tk.DISABLED)
         self.cuda_check.config(state=new_state_normal if self.cuda_available else tk.DISABLED)
         self.interp_combo.config(state=new_state_readonly)
+        self.output_mode_standard_radio.config(state=new_state_normal)
+        self.output_mode_colmap_radio.config(state=new_state_normal)
         if self.yaw_selector_widget:
             if converting:
                 if hasattr(self.yaw_selector_widget, 'disable_controls'): self.yaw_selector_widget.disable_controls()
@@ -1017,6 +1051,9 @@ class Insta360ConvertGUI(tk.Tk):
     def start_conversion_mp(self): # pylint: disable=too-many-locals, too-many-statements, too-many-branches
         if not self.validate_inputs(): return
         viewpoints = self.calculate_viewpoints()
+        output_mode = self.output_mode_var.get()
+        if output_mode == "colmap_rig":
+            viewpoints = prepare_viewpoints_for_colmap(viewpoints)
         if not viewpoints: self.log_message_ui("log_conversion_cannot_start_no_viewpoints", "ERROR", is_key=True); return
         self.cuda_checked_for_high_res_compatibility = False; self.cuda_fallback_triggered_for_high_res = False
         self.cuda_compatibility_confirmed_for_high_res = False
@@ -1055,6 +1092,14 @@ class Insta360ConvertGUI(tk.Tk):
             self.log_message_ui("log_multiprocessing_init_error_format", "CRITICAL", is_key=True, error=str(e))
             self.toggle_ui_state(converting=False); self.start_time = 0; return
         output_w, output_h = self.get_output_resolution()
+        self.colmap_rig_context = None
+        if output_mode == "colmap_rig":
+            self.colmap_rig_context = {
+                "output_folder": self.output_folder_var.get(),
+                "output_resolution": (output_w, output_h),
+                "viewpoints": viewpoints,
+                "rig_name": DEFAULT_RIG_NAME
+            }
         if self.cuda_fallback_triggered_for_high_res:
             effective_use_cuda = False; self.log_message_ui("log_cuda_fallback_all_cpu", "INFO", is_key=True)
         elif is_high_res_input and self.cuda_var.get() and self.cuda_available and not self.cuda_compatibility_confirmed_for_high_res:
@@ -1071,6 +1116,7 @@ class Insta360ConvertGUI(tk.Tk):
             "output_folder": self.output_folder_var.get(), "output_resolution": (output_w, output_h),
             "interp": self.interp_var.get(), "threads_ffmpeg": int(os.cpu_count() or 1),
             "use_cuda": effective_use_cuda, "output_format": self.output_format_var.get(),
+            "output_mode": output_mode, "colmap_rig_name": DEFAULT_RIG_NAME,
             "frame_interval": frame_interval_for_worker, "video_preset": self.preset_var.get(),
             "video_cq": self.cq_var.get(), "png_pred_option": self.png_pred_options_map.get(self.png_pred_var.get(), "3"),
             "jpeg_quality": jpeg_quality_for_worker
@@ -1099,6 +1145,18 @@ class Insta360ConvertGUI(tk.Tk):
             self.progress_bar["value"] = 100; self.overall_remaining_str = "00:00:00"
         self.final_conversion_message = f"{final_verb_for_ui} - {S.get('time_display_elapsed')}: {elapsed_time_formatted}"
         self.update_time_label_display()
+        if not was_cancelled and self.colmap_rig_context:
+            try:
+                rig_path = write_rig_config_json(
+                    self.colmap_rig_context["output_folder"],
+                    self.colmap_rig_context["viewpoints"],
+                    self.colmap_rig_context["output_resolution"],
+                    rig_name=self.colmap_rig_context["rig_name"]
+                )
+                self.log_message_ui("log_colmap_rig_config_written_format", "INFO", is_key=True, path=rig_path)
+            except Exception as e: # pylint: disable=broad-except
+                self.log_message_ui("log_colmap_rig_config_write_failed_format", "ERROR", is_key=True, error=str(e))
+        self.colmap_rig_context = None
         if self.conversion_pool:
             try:
                 if was_cancelled: self.conversion_pool.terminate()
