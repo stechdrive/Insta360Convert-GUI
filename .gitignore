@@ -67,6 +67,9 @@ Desktop.ini     # Windows
 # .env
 app_settings.json
 
+# Local agent instructions
+AGENTS.md
+
 # Jupyter Notebook checkpoints (もし使用する場合)
 .ipynb_checkpoints
 
