@@ -2,11 +2,11 @@
 # アプリケーション全体で使用する定数 (翻訳不要なもの)
 
 # --- バージョン情報 ---
-APP_RELEASE_DATE = "2025-12-25" # リリース日 (ユーザー提供の値を維持)
+APP_RELEASE_DATE = "2025-12-27" # リリース日 (ユーザー提供の値を維持)
 
 APP_VERSION_MAJOR = 2
 APP_VERSION_MINOR = 3
-APP_VERSION_PATCH = 0
+APP_VERSION_PATCH = 1
 APP_VERSION_STRING_SEMVER = f"v{APP_VERSION_MAJOR}.{APP_VERSION_MINOR}.{APP_VERSION_PATCH}"
 
 # --- FFmpeg関連定数 ---

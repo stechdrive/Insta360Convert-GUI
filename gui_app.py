@@ -325,7 +325,8 @@ class Insta360ConvertGUI(tk.Tk):
         if total_height <= 1:
             return
         min_log_height = getattr(self, "log_pane_minsize", 140)
-        target = int(total_height * 0.65)
+        default_log_ratio = 0.35 / 3
+        target = int(total_height * (1 - default_log_ratio))
         max_target = max(0, total_height - min_log_height)
         if max_target:
             target = min(target, max_target)
