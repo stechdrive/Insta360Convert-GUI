@@ -331,6 +331,23 @@ class Insta360ConvertGUI(tk.Tk):
             target = min(target, max_target)
         if target > 0:
             self.main_paned_window.sashpos(0, target)
+        self._enforce_log_pane_min_height()
+
+    def _enforce_log_pane_min_height(self, event=None):
+        if not hasattr(self, "main_paned_window"):
+            return
+        try:
+            self.update_idletasks()
+            total_height = self.main_paned_window.winfo_height()
+            if total_height <= 1:
+                return
+            min_log_height = getattr(self, "log_pane_minsize", 140)
+            max_sash = max(0, total_height - min_log_height)
+            current_sash = self.main_paned_window.sashpos(0)
+            if current_sash > max_sash:
+                self.main_paned_window.sashpos(0, max_sash)
+        except tk.TclError:
+            pass
 
     def _on_yaw_section_toggled(self, is_open):
         def _apply():
@@ -408,6 +425,7 @@ class Insta360ConvertGUI(tk.Tk):
 
         self.main_paned_window = ttk.PanedWindow(self.main_frame, orient=tk.VERTICAL)
         self.main_paned_window.pack(expand=True, fill=tk.BOTH)
+        self.main_paned_window.bind("<Configure>", self._enforce_log_pane_min_height)
 
         self.settings_container = ttk.Frame(self.main_paned_window)
         self.main_paned_window.add(self.settings_container, weight=3)
@@ -434,7 +452,7 @@ class Insta360ConvertGUI(tk.Tk):
 
         self.log_pane_minsize = 140
         self.log_container = ttk.Frame(self.main_paned_window)
-        self.main_paned_window.add(self.log_container, weight=2, minsize=self.log_pane_minsize)
+        self.main_paned_window.add(self.log_container, weight=2)
 
         self.io_frame = ttk.LabelFrame(self.settings_frame, text="", padding="5")
         self.io_frame.pack(fill=tk.X, pady=2, side=tk.TOP)
