@@ -274,6 +274,123 @@ class Insta360ConvertGUI(tk.Tk):
             new_text = S.get(tip_info["key"], *tip_info["args"], **tip_info["kwargs"])
             tip_info["instance"].update_text(new_text)
 
+    def _update_settings_scrollregion(self):
+        if not hasattr(self, "settings_canvas"):
+            return
+        self.update_idletasks()
+        self.settings_canvas.configure(scrollregion=self.settings_canvas.bbox("all"))
+
+    def _on_settings_frame_configure(self, event=None):
+        self._update_settings_scrollregion()
+
+    def _on_settings_canvas_configure(self, event):
+        if hasattr(self, "settings_frame_id"):
+            self.settings_canvas.itemconfigure(self.settings_frame_id, width=event.width)
+
+    def _on_settings_mousewheel(self, event):
+        if not hasattr(self, "settings_canvas"):
+            return "break"
+        if event.delta:
+            self.settings_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+        elif event.num == 4:
+            self.settings_canvas.yview_scroll(-1, "units")
+        elif event.num == 5:
+            self.settings_canvas.yview_scroll(1, "units")
+        return "break"
+
+    def _bind_settings_mousewheel(self, event=None):
+        if getattr(self, "_settings_mousewheel_bound", False):
+            return
+        self._settings_mousewheel_bound = True
+        self._settings_mousewheel_bindings = [
+            ("<MouseWheel>", self.bind("<MouseWheel>", self._on_settings_mousewheel, add="+")),
+            ("<Button-4>", self.bind("<Button-4>", self._on_settings_mousewheel, add="+")),
+            ("<Button-5>", self.bind("<Button-5>", self._on_settings_mousewheel, add="+"))
+        ]
+
+    def _unbind_settings_mousewheel(self, event=None):
+        if not getattr(self, "_settings_mousewheel_bound", False):
+            return
+        self._settings_mousewheel_bound = False
+        for sequence, funcid in getattr(self, "_settings_mousewheel_bindings", []):
+            if funcid:
+                self.unbind(sequence, funcid)
+        self._settings_mousewheel_bindings = []
+
+    def _set_main_paned_sash(self):
+        if not hasattr(self, "main_paned_window"):
+            return
+        self.update_idletasks()
+        total_height = self.main_paned_window.winfo_height()
+        if total_height <= 1:
+            return
+        min_log_height = getattr(self, "log_pane_minsize", 140)
+        target = int(total_height * 0.65)
+        max_target = max(0, total_height - min_log_height)
+        if max_target:
+            target = min(target, max_target)
+        if target > 0:
+            self.main_paned_window.sashpos(0, target)
+
+    def _on_yaw_section_toggled(self, is_open):
+        def _apply():
+            if not hasattr(self, "main_content_paned_window"):
+                return
+            try:
+                if not is_open:
+                    self._yaw_selector_sashpos = self.main_content_paned_window.sashpos(0)
+                    self.update_idletasks()
+                    collapsed_height = self.yaw_selector_module_labelframe.winfo_reqheight()
+                    self.main_content_paned_window.sashpos(0, collapsed_height)
+                else:
+                    previous = getattr(self, "_yaw_selector_sashpos", None)
+                    if previous is not None:
+                        self.main_content_paned_window.sashpos(0, previous)
+            except tk.TclError:
+                pass
+        self.after_idle(_apply)
+
+    def create_collapsible_section(self, parent, title, default_open=True, body_pack_opts=None, on_toggle=None):
+        if body_pack_opts is None:
+            body_pack_opts = {"fill": tk.X}
+
+        section_frame = ttk.LabelFrame(parent, text="", padding="5")
+        header_frame = ttk.Frame(section_frame)
+        toggle_var = tk.BooleanVar(value=default_open)
+        toggle_text_var = tk.StringVar()
+
+        def update_toggle_text():
+            toggle_text_var.set("[-]" if toggle_var.get() else "[+]")
+
+        body_frame = ttk.Frame(section_frame)
+
+        def toggle_section():
+            is_open = not toggle_var.get()
+            toggle_var.set(is_open)
+            if is_open:
+                body_frame.pack(**body_pack_opts)
+            else:
+                body_frame.pack_forget()
+            update_toggle_text()
+            if on_toggle:
+                on_toggle(is_open)
+            self._update_settings_scrollregion()
+
+        toggle_button = ttk.Button(header_frame, textvariable=toggle_text_var, width=3, command=toggle_section)
+        toggle_button.pack(side=tk.LEFT, padx=(0, 2))
+        title_label = ttk.Label(header_frame, text=title)
+        title_label.pack(side=tk.LEFT)
+
+        header_frame.bind("<Button-1>", lambda event: toggle_section())
+        title_label.bind("<Button-1>", lambda event: toggle_section())
+
+        section_frame.configure(labelwidget=header_frame)
+
+        if default_open:
+            body_frame.pack(**body_pack_opts)
+        update_toggle_text()
+
+        return section_frame, body_frame, toggle_var, title_label
 
     def create_widgets(self): # pylint: disable=too-many-statements
         self._rebuild_menus()
@@ -289,7 +406,37 @@ class Insta360ConvertGUI(tk.Tk):
         self.viewpoint_progress_text_var.set(S.get("viewpoint_progress_format", completed=0, total=0))
         self.colmap_progress_text_var.set(S.get("colmap_progress_idle"))
 
-        self.io_frame = ttk.LabelFrame(self.main_frame, text="", padding="5")
+        self.main_paned_window = ttk.PanedWindow(self.main_frame, orient=tk.VERTICAL)
+        self.main_paned_window.pack(expand=True, fill=tk.BOTH)
+
+        self.settings_container = ttk.Frame(self.main_paned_window)
+        self.main_paned_window.add(self.settings_container, weight=3)
+
+        self.settings_canvas = tk.Canvas(self.settings_container, highlightthickness=0, borderwidth=0)
+        self.settings_scrollbar = ttk.Scrollbar(self.settings_container, orient=tk.VERTICAL, command=self.settings_canvas.yview)
+        self.settings_canvas.configure(yscrollcommand=self.settings_scrollbar.set)
+
+        self.settings_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        self.settings_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        self.settings_frame = ttk.Frame(self.settings_canvas)
+        self.settings_frame_id = self.settings_canvas.create_window((0, 0), window=self.settings_frame, anchor="nw")
+
+        self.settings_canvas.bind("<Configure>", self._on_settings_canvas_configure)
+        self.settings_frame.bind("<Configure>", self._on_settings_frame_configure)
+        self.settings_canvas.bind("<Enter>", self._bind_settings_mousewheel)
+        self.settings_canvas.bind("<Leave>", self._unbind_settings_mousewheel)
+        self.settings_frame.bind("<Enter>", self._bind_settings_mousewheel)
+        self.settings_frame.bind("<Leave>", self._unbind_settings_mousewheel)
+
+        self._settings_mousewheel_bound = False
+        self._settings_mousewheel_bindings = []
+
+        self.log_pane_minsize = 140
+        self.log_container = ttk.Frame(self.main_paned_window)
+        self.main_paned_window.add(self.log_container, weight=2, minsize=self.log_pane_minsize)
+
+        self.io_frame = ttk.LabelFrame(self.settings_frame, text="", padding="5")
         self.io_frame.pack(fill=tk.X, pady=2, side=tk.TOP)
         self.input_file_label = ttk.Label(self.io_frame, text="")
         self.input_file_label.grid(row=0, column=0, padx=5, pady=2, sticky=tk.W)
@@ -308,14 +455,23 @@ class Insta360ConvertGUI(tk.Tk):
         self.browse_output_button.grid(row=1, column=2, padx=5, pady=2)
         self.io_frame.columnconfigure(1, weight=1)
 
-        self.main_content_paned_window = ttk.PanedWindow(self.main_frame, orient=tk.VERTICAL)
+        self.main_content_paned_window = ttk.PanedWindow(self.settings_frame, orient=tk.VERTICAL)
         self.main_content_paned_window.pack(fill=tk.BOTH, expand=True, pady=(2,0), side=tk.TOP)
 
-        self.yaw_selector_module_labelframe = ttk.LabelFrame(self.main_content_paned_window, text="", padding="5")
+        self._yaw_selector_sashpos = None
+        self.yaw_selector_module_labelframe, yaw_body, self.yaw_selector_toggle_var, self.yaw_selector_header_label = (
+            self.create_collapsible_section(
+                self.main_content_paned_window,
+                title="",
+                default_open=True,
+                body_pack_opts={"fill": tk.BOTH, "expand": True},
+                on_toggle=self._on_yaw_section_toggled
+            )
+        )
         self.main_content_paned_window.add(self.yaw_selector_module_labelframe, weight=3)
 
         self.yaw_selector_widget = AdvancedYawSelector(
-            self.yaw_selector_module_labelframe,
+            yaw_body,
             initial_pitches_str=AYS_DEFAULT_PITCHES_STR,
             on_selection_change_callback=self.on_yaw_selector_updated
         )
@@ -324,10 +480,17 @@ class Insta360ConvertGUI(tk.Tk):
         bottom_content_frame = ttk.Frame(self.main_content_paned_window)
         self.main_content_paned_window.add(bottom_content_frame, weight=2)
 
-        self.output_settings_frame = ttk.LabelFrame(bottom_content_frame, text="", padding="5")
+        self.output_settings_frame, self.output_settings_body, self.output_settings_toggle_var, self.output_settings_header_label = (
+            self.create_collapsible_section(
+                bottom_content_frame,
+                title="",
+                default_open=True,
+                body_pack_opts={"fill": tk.X, "expand": False}
+            )
+        )
         self.output_settings_frame.pack(fill=tk.X, pady=2, side=tk.TOP)
 
-        common_opts_line1_frame = ttk.Frame(self.output_settings_frame)
+        common_opts_line1_frame = ttk.Frame(self.output_settings_body)
         common_opts_line1_frame.pack(fill=tk.X, pady=2)
         self.resolution_label = ttk.Label(common_opts_line1_frame, text="")
         self.resolution_label.pack(side=tk.LEFT, padx=(5,2), pady=2)
@@ -351,7 +514,7 @@ class Insta360ConvertGUI(tk.Tk):
                                          values=self.interp_options, width=10, state="readonly")
         self.interp_combo.pack(side=tk.LEFT, padx=(0,5), pady=2)
 
-        output_mode_frame = ttk.Frame(self.output_settings_frame)
+        output_mode_frame = ttk.Frame(self.output_settings_body)
         output_mode_frame.pack(fill=tk.X, pady=(5,2))
         self.output_mode_label = ttk.Label(output_mode_frame, text="")
         self.output_mode_label.pack(side=tk.LEFT, padx=(5,2))
@@ -362,7 +525,7 @@ class Insta360ConvertGUI(tk.Tk):
                                                         value="colmap_rig", command=self.update_output_format_options)
         self.output_mode_colmap_radio.pack(side=tk.LEFT, padx=(5,2))
 
-        format_options_main_frame = ttk.Frame(self.output_settings_frame)
+        format_options_main_frame = ttk.Frame(self.output_settings_body)
         format_options_main_frame.pack(fill=tk.X, pady=(5,2))
 
         self.png_radio = ttk.Radiobutton(format_options_main_frame, text="", variable=self.output_format_var,
@@ -453,66 +616,74 @@ class Insta360ConvertGUI(tk.Tk):
         self.progress_bar = ttk.Progressbar(self.progress_display_frame, orient="horizontal", length=200, mode="determinate")
         self.progress_bar.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
 
-        self.colmap_pipeline_frame = ttk.LabelFrame(bottom_content_frame, text="", padding="5")
+        self.colmap_pipeline_frame, self.colmap_pipeline_body, self.colmap_pipeline_toggle_var, self.colmap_pipeline_header_label = (
+            self.create_collapsible_section(
+                bottom_content_frame,
+                title="",
+                default_open=False,
+                body_pack_opts={"fill": tk.X, "expand": False}
+            )
+        )
         self.colmap_pipeline_frame.pack(fill=tk.X, pady=2, side=tk.TOP)
-        self.colmap_rig_label = ttk.Label(self.colmap_pipeline_frame, text="")
+
+        self.colmap_rig_label = ttk.Label(self.colmap_pipeline_body, text="")
         self.colmap_rig_label.grid(row=0, column=0, padx=5, pady=2, sticky=tk.W)
-        self.colmap_rig_entry = ttk.Entry(self.colmap_pipeline_frame, textvariable=self.colmap_rig_folder_var, width=45)
+        self.colmap_rig_entry = ttk.Entry(self.colmap_pipeline_body, textvariable=self.colmap_rig_folder_var, width=45)
         self.colmap_rig_entry.grid(row=0, column=1, padx=(0, 5), pady=2, sticky=tk.EW, columnspan=3)
-        self.colmap_rig_browse = ttk.Button(self.colmap_pipeline_frame, text="", command=self.browse_colmap_rig_folder)
+        self.colmap_rig_browse = ttk.Button(self.colmap_pipeline_body, text="", command=self.browse_colmap_rig_folder)
         self.colmap_rig_browse.grid(row=0, column=4, padx=5, pady=2, sticky=tk.W)
 
-        self.colmap_exec_label = ttk.Label(self.colmap_pipeline_frame, text="")
+        self.colmap_exec_label = ttk.Label(self.colmap_pipeline_body, text="")
         self.colmap_exec_label.grid(row=1, column=0, padx=5, pady=2, sticky=tk.W)
-        self.colmap_exec_entry = ttk.Entry(self.colmap_pipeline_frame, textvariable=self.colmap_exec_path_var, width=45)
+        self.colmap_exec_entry = ttk.Entry(self.colmap_pipeline_body, textvariable=self.colmap_exec_path_var, width=45)
         self.colmap_exec_entry.grid(row=1, column=1, padx=(0, 5), pady=2, sticky=tk.EW, columnspan=3)
-        self.colmap_exec_browse = ttk.Button(self.colmap_pipeline_frame, text="", command=self.browse_colmap_exec_path)
+        self.colmap_exec_browse = ttk.Button(self.colmap_pipeline_body, text="", command=self.browse_colmap_exec_path)
         self.colmap_exec_browse.grid(row=1, column=4, padx=5, pady=2, sticky=tk.W)
 
-        self.colmap_preset_label = ttk.Label(self.colmap_pipeline_frame, text="")
+        self.colmap_preset_label = ttk.Label(self.colmap_pipeline_body, text="")
         self.colmap_preset_label.grid(row=2, column=0, padx=5, pady=2, sticky=tk.W)
-        self.colmap_preset_combo = ttk.Combobox(self.colmap_pipeline_frame, textvariable=self.colmap_preset_var,
+        self.colmap_preset_combo = ttk.Combobox(self.colmap_pipeline_body, textvariable=self.colmap_preset_var,
                                                 values=[], width=16, state="readonly")
         self.colmap_preset_combo.grid(row=2, column=1, padx=(0, 5), pady=2, sticky=tk.W)
-        self.colmap_advanced_button = ttk.Button(self.colmap_pipeline_frame, text="", command=self.open_colmap_advanced_dialog)
+        self.colmap_advanced_button = ttk.Button(self.colmap_pipeline_body, text="", command=self.open_colmap_advanced_dialog)
         self.colmap_advanced_button.grid(row=2, column=2, padx=5, pady=2, sticky=tk.W)
 
-        self.colmap_matcher_label = ttk.Label(self.colmap_pipeline_frame, text="")
+        self.colmap_matcher_label = ttk.Label(self.colmap_pipeline_body, text="")
         self.colmap_matcher_label.grid(row=3, column=0, padx=5, pady=2, sticky=tk.W)
-        self.colmap_matcher_combo = ttk.Combobox(self.colmap_pipeline_frame, textvariable=self.colmap_matcher_var,
+        self.colmap_matcher_combo = ttk.Combobox(self.colmap_pipeline_body, textvariable=self.colmap_matcher_var,
                                                  values=self.colmap_matcher_options, width=12, state="readonly")
         self.colmap_matcher_combo.grid(row=3, column=1, padx=(0, 5), pady=2, sticky=tk.W)
         self.colmap_preset_combo.bind("<<ComboboxSelected>>", self.on_colmap_preset_changed)
         self.colmap_matcher_combo.bind("<<ComboboxSelected>>", self.on_colmap_matcher_changed)
 
-        self.colmap_vocab_tree_label = ttk.Label(self.colmap_pipeline_frame, text="")
+        self.colmap_vocab_tree_label = ttk.Label(self.colmap_pipeline_body, text="")
         self.colmap_vocab_tree_label.grid(row=4, column=0, padx=5, pady=2, sticky=tk.W)
-        self.colmap_vocab_tree_entry = ttk.Entry(self.colmap_pipeline_frame, textvariable=self.colmap_vocab_tree_path_var, width=45)
+        self.colmap_vocab_tree_entry = ttk.Entry(self.colmap_pipeline_body, textvariable=self.colmap_vocab_tree_path_var, width=45)
         self.colmap_vocab_tree_entry.grid(row=4, column=1, padx=(0, 5), pady=2, sticky=tk.EW, columnspan=3)
-        self.colmap_vocab_tree_browse = ttk.Button(self.colmap_pipeline_frame, text="", command=self.browse_colmap_vocab_tree_path)
+        self.colmap_vocab_tree_browse = ttk.Button(self.colmap_pipeline_body, text="", command=self.browse_colmap_vocab_tree_path)
         self.colmap_vocab_tree_browse.grid(row=4, column=4, padx=5, pady=2, sticky=tk.W)
 
-        self.colmap_postshot_label = ttk.Label(self.colmap_pipeline_frame, text="")
+        self.colmap_postshot_label = ttk.Label(self.colmap_pipeline_body, text="")
         self.colmap_postshot_label.grid(row=5, column=0, padx=5, pady=2, sticky=tk.W)
-        self.colmap_postshot_entry = ttk.Entry(self.colmap_pipeline_frame, textvariable=self.colmap_postshot_folder_var, width=35)
+        self.colmap_postshot_entry = ttk.Entry(self.colmap_pipeline_body, textvariable=self.colmap_postshot_folder_var, width=35)
         self.colmap_postshot_entry.grid(row=5, column=1, padx=(0, 5), pady=2, sticky=tk.EW, columnspan=3)
-        self.colmap_postshot_browse = ttk.Button(self.colmap_pipeline_frame, text="", command=self.browse_postshot_folder)
+        self.colmap_postshot_browse = ttk.Button(self.colmap_pipeline_body, text="", command=self.browse_postshot_folder)
         self.colmap_postshot_browse.grid(row=5, column=4, padx=5, pady=2, sticky=tk.W)
 
-        self.colmap_run_button = ttk.Button(self.colmap_pipeline_frame, text="", command=self.start_colmap_pipeline)
+        self.colmap_run_button = ttk.Button(self.colmap_pipeline_body, text="", command=self.start_colmap_pipeline)
         self.colmap_run_button.grid(row=6, column=0, padx=5, pady=(4, 2), sticky=tk.W)
-        self.colmap_cancel_button = ttk.Button(self.colmap_pipeline_frame, text="", command=self.cancel_colmap_pipeline, state="disabled")
+        self.colmap_cancel_button = ttk.Button(self.colmap_pipeline_body, text="", command=self.cancel_colmap_pipeline, state="disabled")
         self.colmap_cancel_button.grid(row=6, column=1, padx=5, pady=(4, 2), sticky=tk.W)
-        self.colmap_progress_frame = ttk.Frame(self.colmap_pipeline_frame)
+        self.colmap_progress_frame = ttk.Frame(self.colmap_pipeline_body)
         self.colmap_progress_frame.grid(row=7, column=0, columnspan=5, padx=5, pady=(2, 0), sticky=tk.EW)
         self.colmap_progress_label = ttk.Label(self.colmap_progress_frame, textvariable=self.colmap_progress_text_var)
         self.colmap_progress_label.pack(side=tk.LEFT, padx=(0, 5))
         self.colmap_progress_bar = ttk.Progressbar(self.colmap_progress_frame, orient="horizontal", length=200, mode="determinate")
         self.colmap_progress_bar.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
-        self.colmap_pipeline_frame.columnconfigure(1, weight=1)
-        self.colmap_pipeline_frame.columnconfigure(3, weight=1)
+        self.colmap_pipeline_body.columnconfigure(1, weight=1)
+        self.colmap_pipeline_body.columnconfigure(3, weight=1)
 
-        self.log_notebook = ttk.Notebook(bottom_content_frame, padding=2)
+        self.log_notebook = ttk.Notebook(self.log_container, padding=2)
         self.log_notebook.pack(expand=True, fill=tk.BOTH, pady=(2,5), side=tk.TOP)
 
         self.app_log_frame = ttk.Frame(self.log_notebook, padding=2)
@@ -524,6 +695,9 @@ class Insta360ConvertGUI(tk.Tk):
         self.log_notebook.add(self.ffmpeg_log_frame, text="")
         self.ffmpeg_log_area = scrolledtext.ScrolledText(self.ffmpeg_log_frame, height=6, state="disabled", wrap=tk.WORD, relief=tk.SUNKEN, bd=1)
         self.ffmpeg_log_area.pack(expand=True, fill=tk.BOTH)
+
+        self._update_settings_scrollregion()
+        self.after(0, self._set_main_paned_sash)
 
 
     def switch_language(self, lang_code):
@@ -549,9 +723,9 @@ class Insta360ConvertGUI(tk.Tk):
         self.browse_input_button.config(text=S.get("browse_button"))
         self.output_folder_label.config(text=S.get("output_folder_label"))
         self.browse_output_button.config(text=S.get("browse_button"))
-        self.yaw_selector_module_labelframe.config(text=S.get("viewpoint_settings_labelframe_title"))
+        self.yaw_selector_header_label.config(text=S.get("viewpoint_settings_labelframe_title"))
 
-        self.output_settings_frame.config(text=S.get("output_settings_labelframe_title"))
+        self.output_settings_header_label.config(text=S.get("output_settings_labelframe_title"))
         self.resolution_label.config(text=S.get("resolution_label"))
 
         current_res_display_text = self.resolution_var.get()
@@ -585,7 +759,7 @@ class Insta360ConvertGUI(tk.Tk):
         self.output_mode_label.config(text=S.get("output_mode_label"))
         self.output_mode_standard_radio.config(text=S.get("output_mode_standard_label"))
         self.output_mode_colmap_radio.config(text=S.get("output_mode_colmap_label"))
-        self.colmap_pipeline_frame.config(text=S.get("colmap_pipeline_label"))
+        self.colmap_pipeline_header_label.config(text=S.get("colmap_pipeline_label"))
         self.colmap_rig_label.config(text=S.get("colmap_rig_folder_label"))
         self.colmap_exec_label.config(text=S.get("colmap_exec_label"))
         self.colmap_preset_label.config(text=S.get("colmap_preset_label"))
@@ -739,6 +913,7 @@ class Insta360ConvertGUI(tk.Tk):
             self.yaw_selector_widget.update_ui_texts_for_language_switch()
         self.update_output_format_options()
         self.update_colmap_controls_state()
+        self._update_settings_scrollregion()
 
 
     def on_yaw_selector_updated(self):
