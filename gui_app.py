@@ -1232,12 +1232,12 @@ class Insta360ConvertGUI(tk.Tk):
         estimate_affine_var = tk.IntVar(value=as_int(get_option("feature", "SiftExtraction.estimate_affine_shape", 0)))
         dsp_var = tk.IntVar(value=as_int(get_option("feature", "SiftExtraction.domain_size_pooling", 0)))
 
-        guided_matching_var = tk.IntVar(value=as_int(get_option("matcher", "SiftMatching.guided_matching", 0)))
+        guided_matching_var = tk.IntVar(value=as_int(get_option("matcher", "FeatureMatching.guided_matching", 0)))
         max_ratio_var = tk.StringVar(value=as_str(get_option("matcher", "SiftMatching.max_ratio")))
         max_distance_var = tk.StringVar(value=as_str(get_option("matcher", "SiftMatching.max_distance")))
 
         rig_flex_var = tk.IntVar(value=as_int(get_option("mapper", "Mapper.ba_refine_sensor_from_rig", 0)))
-        ba_global_images_ratio_var = tk.StringVar(value=as_str(get_option("mapper", "Mapper.ba_global_images_ratio")))
+        ba_global_frames_ratio_var = tk.StringVar(value=as_str(get_option("mapper", "Mapper.ba_global_frames_ratio")))
         ba_global_points_ratio_var = tk.StringVar(value=as_str(get_option("mapper", "Mapper.ba_global_points_ratio")))
 
         loop_detection_var = tk.IntVar(value=as_int(get_option("matcher", "SequentialMatching.loop_detection", 0)))
@@ -1268,7 +1268,7 @@ class Insta360ConvertGUI(tk.Tk):
 
         ttk.Checkbutton(mapper_frame, text=S.get("colmap_advanced_rig_flex_label"),
                         variable=rig_flex_var).grid(row=0, column=0, columnspan=2, padx=5, pady=2, sticky=tk.W)
-        add_labeled_entry(mapper_frame, 1, "colmap_advanced_ba_global_images_ratio_label", ba_global_images_ratio_var)
+        add_labeled_entry(mapper_frame, 1, "colmap_advanced_ba_global_images_ratio_label", ba_global_frames_ratio_var)
         add_labeled_entry(mapper_frame, 2, "colmap_advanced_ba_global_points_ratio_label", ba_global_points_ratio_var)
 
         loop_detection_check = ttk.Checkbutton(loop_frame, text=S.get("colmap_advanced_loop_detection_label"),
@@ -1306,11 +1306,11 @@ class Insta360ConvertGUI(tk.Tk):
             peak_threshold_var.set(as_str(preset_options.get("feature", {}).get("SiftExtraction.peak_threshold")))
             estimate_affine_var.set(as_int(preset_options.get("feature", {}).get("SiftExtraction.estimate_affine_shape", 0)))
             dsp_var.set(as_int(preset_options.get("feature", {}).get("SiftExtraction.domain_size_pooling", 0)))
-            guided_matching_var.set(as_int(preset_options.get("matcher", {}).get("SiftMatching.guided_matching", 0)))
+            guided_matching_var.set(as_int(preset_options.get("matcher", {}).get("FeatureMatching.guided_matching", 0)))
             max_ratio_var.set(as_str(preset_options.get("matcher", {}).get("SiftMatching.max_ratio")))
             max_distance_var.set(as_str(preset_options.get("matcher", {}).get("SiftMatching.max_distance")))
             rig_flex_var.set(as_int(preset_options.get("mapper", {}).get("Mapper.ba_refine_sensor_from_rig", 0)))
-            ba_global_images_ratio_var.set(as_str(preset_options.get("mapper", {}).get("Mapper.ba_global_images_ratio")))
+            ba_global_frames_ratio_var.set(as_str(preset_options.get("mapper", {}).get("Mapper.ba_global_frames_ratio")))
             ba_global_points_ratio_var.set(as_str(preset_options.get("mapper", {}).get("Mapper.ba_global_points_ratio")))
             loop_detection_var.set(as_int(preset_options.get("matcher", {}).get("SequentialMatching.loop_detection", 0)))
             loop_num_images_var.set(as_str(preset_options.get("matcher", {}).get("SequentialMatching.loop_detection_num_images")))
@@ -1341,11 +1341,11 @@ class Insta360ConvertGUI(tk.Tk):
             maybe_set("feature", "SiftExtraction.peak_threshold", peak_threshold_var.get())
             maybe_set("feature", "SiftExtraction.estimate_affine_shape", estimate_affine_var.get(), 0)
             maybe_set("feature", "SiftExtraction.domain_size_pooling", dsp_var.get(), 0)
-            maybe_set("matcher", "SiftMatching.guided_matching", guided_matching_var.get(), 0)
+            maybe_set("matcher", "FeatureMatching.guided_matching", guided_matching_var.get(), 0)
             maybe_set("matcher", "SiftMatching.max_ratio", max_ratio_var.get())
             maybe_set("matcher", "SiftMatching.max_distance", max_distance_var.get())
             maybe_set("mapper", "Mapper.ba_refine_sensor_from_rig", rig_flex_var.get(), 0)
-            maybe_set("mapper", "Mapper.ba_global_images_ratio", ba_global_images_ratio_var.get())
+            maybe_set("mapper", "Mapper.ba_global_frames_ratio", ba_global_frames_ratio_var.get())
             maybe_set("mapper", "Mapper.ba_global_points_ratio", ba_global_points_ratio_var.get())
             maybe_set("matcher", "SequentialMatching.loop_detection", loop_detection_var.get(), 0)
             if loop_detection_var.get():
@@ -1430,6 +1430,7 @@ class Insta360ConvertGUI(tk.Tk):
         float_positive_keys = {
             "SiftExtraction.peak_threshold",
             "SiftMatching.max_distance",
+            "Mapper.ba_global_frames_ratio",
             "Mapper.ba_global_images_ratio",
             "Mapper.ba_global_points_ratio",
         }
@@ -1439,6 +1440,7 @@ class Insta360ConvertGUI(tk.Tk):
         bool_keys = {
             "SiftExtraction.estimate_affine_shape",
             "SiftExtraction.domain_size_pooling",
+            "FeatureMatching.guided_matching",
             "SiftMatching.guided_matching",
             "Mapper.ba_refine_sensor_from_rig",
             "SequentialMatching.loop_detection",
@@ -1952,6 +1954,7 @@ class Insta360ConvertGUI(tk.Tk):
                 matcher_cmd = [colmap_exec, "sequential_matcher", "--database_path", db_path]
                 matcher_command_name = "sequential_matcher"
             matcher_alias_map = {
+                "FeatureMatching.guided_matching": ["SiftMatching.guided_matching"],
                 "SiftMatching.guided_matching": ["FeatureMatching.guided_matching"]
             }
             matcher_cmd = apply_supported_options(matcher_command_name, matcher_cmd,
@@ -1963,7 +1966,12 @@ class Insta360ConvertGUI(tk.Tk):
                 "--image_path", images_dir,
                 "--output_path", sparse_dir
             ]
-            mapper_cmd = apply_supported_options("mapper", mapper_cmd, options.get("mapper", {}))
+            mapper_alias_map = {
+                "Mapper.ba_global_frames_ratio": ["Mapper.ba_global_images_ratio"],
+                "Mapper.ba_global_images_ratio": ["Mapper.ba_global_frames_ratio"]
+            }
+            mapper_cmd = apply_supported_options("mapper", mapper_cmd, options.get("mapper", {}),
+                                                 alias_map=mapper_alias_map)
 
             step_commands = [
                 ("feature_extractor", feature_cmd),

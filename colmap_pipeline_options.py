@@ -6,6 +6,8 @@ from __future__ import annotations
 import os
 
 VOCAB_TREE_PRIORITY_NAMES = (
+    "vocab_tree_faiss_flickr100K_words256K.bin",
+    "vocab_tree_faiss_flickr100K_words1M.bin",
     "vocab_tree_flickr100K_words256K.bin",
     "vocab_tree_flickr100K_words1M.bin",
 )
@@ -22,7 +24,7 @@ BALANCED_OPTIONS = {
         "SiftExtraction.domain_size_pooling": 1,
     },
     "matcher": {
-        "SiftMatching.guided_matching": 1,
+        "FeatureMatching.guided_matching": 1,
     },
     "mapper": {
         "Mapper.ba_refine_sensor_from_rig": 1,
