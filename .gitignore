@@ -83,3 +83,4 @@ AGENTS.md
 .pytest_cache/
 
 loft/
+.tmp/colmap-upstream
