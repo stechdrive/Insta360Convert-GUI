@@ -278,9 +278,12 @@ This entire section is provided by the "Advanced Yaw Selector" module.
 
 *   **COLMAP Rig Folder:** Select the `colmap_rig` folder (must contain `images/` and `rig_config.json`).
 *   **COLMAP Executable:** Path to `colmap.exe` (or `colmap` on macOS/Linux).
-*   **Matcher:** Choose `sequential` for video-style matching or `exhaustive` for full pair matching.
+*   **Preset:** Choose from Standard / Balanced / Ultra Detail / Multi-Path Sync.
+*   **Advanced...:** Fine-tune COLMAP options (SIFT, matching, rig refinement, loop detection).
+*   **Matcher:** Choose `sequential`, `exhaustive`, or `vocab_tree`.
+*   **Vocab Tree:** Dictionary file for `vocab_tree` matcher or loop detection. Auto-detected from the COLMAP executable if available.
 *   **Postshot Output:** Output folder for Postshot-ready data. Default is `<colmap_rig>/postshot`.
-*   **Database:** `database.db` is created inside the COLMAP Rig folder. Existing DB requires confirmation to overwrite.
+*   **Database:** `database.db` is created inside the COLMAP Rig folder. If it already exists, choose overwrite or resume (with step selection).
 *   **Run COLMAP:** Executes feature_extractor → rig_configurator → matcher → mapper → image_undistorter.
 
 **4.5. Controls and Progress**  
@@ -402,9 +405,12 @@ The application window includes a menu bar at the top.
 
 *   **COLMAP Rigフォルダ:** `colmap_rig` フォルダを選択（`images/` と `rig_config.json` が必要）。
 *   **COLMAP実行ファイル:** `colmap.exe`（または macOS/Linux では `colmap`）のパス。
-*   **Matcher:** `sequential`（動画向け）または `exhaustive`（全組み合わせ、重いが繋がりやすい）を選択。
+*   **Preset:** Standard / Balanced / Ultra Detail / Multi-Path Sync を選択。
+*   **Advanced...:** COLMAPの詳細オプション（SIFT/Matching/Rig/Loop）を調整。
+*   **Matcher:** `sequential` / `exhaustive` / `vocab_tree` を選択。
+*   **Vocab Tree:** `vocab_tree` matcher やループ検出用の辞書ファイル。COLMAP実行ファイルの場所から自動検出。
 *   **Postshot出力先:** Postshot用データの出力先。デフォルトは `<colmap_rig>/postshot`。
-*   **Database:** `database.db` は COLMAP Rigフォルダ内に作成。既存DBは上書き確認あり。
+*   **Database:** `database.db` は COLMAP Rigフォルダ内に作成。既存DBは「上書き/再開」を選択。
 *   **COLMAP実行:** feature_extractor → rig_configurator → matcher → mapper → image_undistorter を実行。
 
 **4.5. コントロールと進捗**

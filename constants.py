@@ -15,6 +15,9 @@ DEFAULT_PRESET = "medium"
 DEFAULT_RESOLUTION_WIDTH = 1920  # 解像度指定が無効な場合のフォールバック値
 HIGH_RESOLUTION_THRESHOLD = 4096 # この解像度を超える入力は高解像度とみなし、CUDA互換性テストの対象とする
 
+# --- COLMAP関連定数 ---
+COLMAP_DEFAULT_PRESET_KEY = "balanced"
+
 # --- GitHub関連定数 (アップデートチェック用) ---
 GITHUB_REPO_OWNER = "stechdrive"
 GITHUB_REPO_NAME = "Insta360Convert-GUI"
