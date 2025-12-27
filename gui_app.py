@@ -349,45 +349,6 @@ class Insta360ConvertGUI(tk.Tk):
         except tk.TclError:
             pass
 
-    def _on_yaw_section_toggled(self, is_open):
-        def _apply():
-            if not hasattr(self, "main_content_paned_window"):
-                return
-            try:
-                if not is_open:
-                    self._yaw_selector_sashpos = self.main_content_paned_window.sashpos(0)
-                    self.update_idletasks()
-                    collapsed_height = self.yaw_selector_module_labelframe.winfo_reqheight()
-                    self.main_content_paned_window.sashpos(0, collapsed_height)
-                else:
-                    previous = getattr(self, "_yaw_selector_sashpos", None)
-                    if previous is not None:
-                        self.main_content_paned_window.sashpos(0, previous)
-            except tk.TclError:
-                pass
-        self.after_idle(_apply)
-
-    def _adjust_main_content_sash_for_bottom(self):
-        if not hasattr(self, "main_content_paned_window") or not hasattr(self, "bottom_content_frame"):
-            return
-        if hasattr(self, "yaw_selector_toggle_var") and not self.yaw_selector_toggle_var.get():
-            return
-        try:
-            self.update_idletasks()
-            total_height = self.main_content_paned_window.winfo_height()
-            if total_height <= 1:
-                return
-            bottom_req = self.bottom_content_frame.winfo_reqheight()
-            if bottom_req <= 0:
-                return
-            bottom_req = min(bottom_req, total_height)
-            self.main_content_paned_window.sashpos(0, total_height - bottom_req)
-        except tk.TclError:
-            pass
-
-    def _on_bottom_section_toggled(self, is_open):
-        self.after_idle(self._adjust_main_content_sash_for_bottom)
-
     def create_collapsible_section(self, parent, title, default_open=True, body_pack_opts=None, on_toggle=None):
         if body_pack_opts is None:
             body_pack_opts = {"fill": tk.X}
@@ -451,8 +412,18 @@ class Insta360ConvertGUI(tk.Tk):
         self.settings_container = ttk.Frame(self.main_paned_window)
         self.main_paned_window.add(self.settings_container, weight=3)
 
-        self.settings_canvas = tk.Canvas(self.settings_container, highlightthickness=0, borderwidth=0)
-        self.settings_scrollbar = ttk.Scrollbar(self.settings_container, orient=tk.VERTICAL, command=self.settings_canvas.yview)
+        self.log_pane_minsize = 140
+        self.log_container = ttk.Frame(self.main_paned_window)
+        self.main_paned_window.add(self.log_container, weight=2)
+
+        self.settings_container.columnconfigure(0, weight=1)
+        self.settings_container.rowconfigure(0, weight=1)
+
+        self.settings_scroll_area = ttk.Frame(self.settings_container)
+        self.settings_scroll_area.grid(row=0, column=0, sticky=tk.NSEW)
+
+        self.settings_canvas = tk.Canvas(self.settings_scroll_area, highlightthickness=0, borderwidth=0)
+        self.settings_scrollbar = ttk.Scrollbar(self.settings_scroll_area, orient=tk.VERTICAL, command=self.settings_canvas.yview)
         self.settings_canvas.configure(yscrollcommand=self.settings_scrollbar.set)
 
         self.settings_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
@@ -470,10 +441,6 @@ class Insta360ConvertGUI(tk.Tk):
 
         self._settings_mousewheel_bound = False
         self._settings_mousewheel_bindings = []
-
-        self.log_pane_minsize = 140
-        self.log_container = ttk.Frame(self.main_paned_window)
-        self.main_paned_window.add(self.log_container, weight=2)
 
         self.io_frame = ttk.LabelFrame(self.settings_frame, text="", padding="5")
         self.io_frame.pack(fill=tk.X, pady=2, side=tk.TOP)
@@ -494,41 +461,46 @@ class Insta360ConvertGUI(tk.Tk):
         self.browse_output_button.grid(row=1, column=2, padx=5, pady=2)
         self.io_frame.columnconfigure(1, weight=1)
 
-        self.main_content_paned_window = ttk.PanedWindow(self.settings_frame, orient=tk.VERTICAL)
-        self.main_content_paned_window.pack(fill=tk.BOTH, expand=True, pady=(2,0), side=tk.TOP)
-
-        self._yaw_selector_sashpos = None
-        self.yaw_selector_module_labelframe, yaw_body, self.yaw_selector_toggle_var, self.yaw_selector_header_label = (
-            self.create_collapsible_section(
-                self.main_content_paned_window,
-                title="",
-                default_open=True,
-                body_pack_opts={"fill": tk.BOTH, "expand": True},
-                on_toggle=self._on_yaw_section_toggled
-            )
-        )
-        self.main_content_paned_window.add(self.yaw_selector_module_labelframe, weight=3)
-
-        self.yaw_selector_widget = AdvancedYawSelector(
-            yaw_body,
-            initial_pitches_str=AYS_DEFAULT_PITCHES_STR,
-            on_selection_change_callback=self.on_yaw_selector_updated
-        )
-        self.yaw_selector_widget.pack(fill=tk.BOTH, expand=True)
-
-        self.bottom_content_frame = ttk.Frame(self.main_content_paned_window)
-        self.main_content_paned_window.add(self.bottom_content_frame, weight=2)
-
         self.output_settings_frame, self.output_settings_body, self.output_settings_toggle_var, self.output_settings_header_label = (
             self.create_collapsible_section(
-                self.bottom_content_frame,
+                self.settings_frame,
                 title="",
                 default_open=True,
-                body_pack_opts={"fill": tk.X, "expand": False},
-                on_toggle=self._on_bottom_section_toggled
+                body_pack_opts={"fill": tk.X, "expand": False}
             )
         )
         self.output_settings_frame.pack(fill=tk.X, pady=2, side=tk.TOP)
+
+        self.control_frame_outer = ttk.Frame(self.output_settings_body, padding=(5,0))
+        self.control_frame_outer.pack(fill=tk.X, pady=(0,2), side=tk.TOP)
+
+        self.parallel_control_frame = ttk.Frame(self.control_frame_outer)
+        self.parallel_control_frame.pack(fill=tk.X)
+        self.parallel_label = ttk.Label(self.parallel_control_frame, text="")
+        self.parallel_label.pack(side=tk.LEFT, padx=(5,0))
+
+        self.parallel_combo = ttk.Combobox(self.parallel_control_frame, textvariable=self.parallel_processes_var,
+                                           values=self.parallel_options, width=5, state="readonly")
+        self.parallel_combo.pack(side=tk.LEFT, padx=5)
+
+        self.button_time_frame = ttk.Frame(self.control_frame_outer)
+        self.button_time_frame.pack(fill=tk.X, pady=(5,0))
+        self.start_button = ttk.Button(self.button_time_frame, text="", command=self.start_conversion_mp)
+        self.start_button.pack(side=tk.LEFT, padx=5)
+
+        self.cancel_button = ttk.Button(self.button_time_frame, text="", command=self.cancel_conversion_mp, state="disabled")
+        self.cancel_button.pack(side=tk.LEFT, padx=5)
+
+        self.time_label = ttk.Label(self.button_time_frame, text="")
+        self.time_label.pack(side=tk.LEFT, padx=10, pady=(0,3))
+
+        self.progress_display_frame = ttk.Frame(self.control_frame_outer)
+        self.progress_display_frame.pack(fill=tk.X, pady=(2,0))
+        self.viewpoint_progress_label = ttk.Label(self.progress_display_frame, textvariable=self.viewpoint_progress_text_var)
+        self.viewpoint_progress_label.pack(side=tk.LEFT, padx=5)
+
+        self.progress_bar = ttk.Progressbar(self.progress_display_frame, orient="horizontal", length=200, mode="determinate")
+        self.progress_bar.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
 
         common_opts_line1_frame = ttk.Frame(self.output_settings_body)
         common_opts_line1_frame.pack(fill=tk.X, pady=2)
@@ -625,44 +597,29 @@ class Insta360ConvertGUI(tk.Tk):
         self.cq_entry.pack(side=tk.LEFT, padx=(0,5))
         format_options_main_frame.columnconfigure(1, weight=1)
 
-        self.control_frame_outer = ttk.Frame(self.bottom_content_frame, padding=(5,0))
-        self.control_frame_outer.pack(fill=tk.X, pady=2, side=tk.TOP)
+        self.yaw_selector_module_labelframe, yaw_body, self.yaw_selector_toggle_var, self.yaw_selector_header_label = (
+            self.create_collapsible_section(
+                self.settings_frame,
+                title="",
+                default_open=True,
+                body_pack_opts={"fill": tk.X, "expand": False}
+            )
+        )
+        self.yaw_selector_module_labelframe.pack(fill=tk.X, pady=2, side=tk.TOP)
 
-        self.parallel_control_frame = ttk.Frame(self.control_frame_outer)
-        self.parallel_control_frame.pack(fill=tk.X)
-        self.parallel_label = ttk.Label(self.parallel_control_frame, text="")
-        self.parallel_label.pack(side=tk.LEFT, padx=(5,0))
-
-        self.parallel_combo = ttk.Combobox(self.parallel_control_frame, textvariable=self.parallel_processes_var,
-                                           values=self.parallel_options, width=5, state="readonly")
-        self.parallel_combo.pack(side=tk.LEFT, padx=5)
-
-        self.button_time_frame = ttk.Frame(self.control_frame_outer)
-        self.button_time_frame.pack(fill=tk.X, pady=(5,0))
-        self.start_button = ttk.Button(self.button_time_frame, text="", command=self.start_conversion_mp)
-        self.start_button.pack(side=tk.LEFT, padx=5)
-
-        self.cancel_button = ttk.Button(self.button_time_frame, text="", command=self.cancel_conversion_mp, state="disabled")
-        self.cancel_button.pack(side=tk.LEFT, padx=5)
-
-        self.time_label = ttk.Label(self.button_time_frame, text="")
-        self.time_label.pack(side=tk.LEFT, padx=10, pady=(0,3))
-
-        self.progress_display_frame = ttk.Frame(self.control_frame_outer)
-        self.progress_display_frame.pack(fill=tk.X, pady=(2,0))
-        self.viewpoint_progress_label = ttk.Label(self.progress_display_frame, textvariable=self.viewpoint_progress_text_var)
-        self.viewpoint_progress_label.pack(side=tk.LEFT, padx=5)
-
-        self.progress_bar = ttk.Progressbar(self.progress_display_frame, orient="horizontal", length=200, mode="determinate")
-        self.progress_bar.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
+        self.yaw_selector_widget = AdvancedYawSelector(
+            yaw_body,
+            initial_pitches_str=AYS_DEFAULT_PITCHES_STR,
+            on_selection_change_callback=self.on_yaw_selector_updated
+        )
+        self.yaw_selector_widget.pack(fill=tk.BOTH, expand=True)
 
         self.colmap_pipeline_frame, self.colmap_pipeline_body, self.colmap_pipeline_toggle_var, self.colmap_pipeline_header_label = (
             self.create_collapsible_section(
-                self.bottom_content_frame,
+                self.settings_frame,
                 title="",
-                default_open=False,
-                body_pack_opts={"fill": tk.X, "expand": False},
-                on_toggle=self._on_bottom_section_toggled
+                default_open=True,
+                body_pack_opts={"fill": tk.X, "expand": False}
             )
         )
         self.colmap_pipeline_frame.pack(fill=tk.X, pady=2, side=tk.TOP)
@@ -738,7 +695,6 @@ class Insta360ConvertGUI(tk.Tk):
         self.ffmpeg_log_area.pack(expand=True, fill=tk.BOTH)
 
         self._update_settings_scrollregion()
-        self.after(0, self._adjust_main_content_sash_for_bottom)
         self.after(0, self._set_main_paned_sash)
 
 
