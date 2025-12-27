@@ -367,6 +367,27 @@ class Insta360ConvertGUI(tk.Tk):
                 pass
         self.after_idle(_apply)
 
+    def _adjust_main_content_sash_for_bottom(self):
+        if not hasattr(self, "main_content_paned_window") or not hasattr(self, "bottom_content_frame"):
+            return
+        if hasattr(self, "yaw_selector_toggle_var") and not self.yaw_selector_toggle_var.get():
+            return
+        try:
+            self.update_idletasks()
+            total_height = self.main_content_paned_window.winfo_height()
+            if total_height <= 1:
+                return
+            bottom_req = self.bottom_content_frame.winfo_reqheight()
+            if bottom_req <= 0:
+                return
+            bottom_req = min(bottom_req, total_height)
+            self.main_content_paned_window.sashpos(0, total_height - bottom_req)
+        except tk.TclError:
+            pass
+
+    def _on_bottom_section_toggled(self, is_open):
+        self.after_idle(self._adjust_main_content_sash_for_bottom)
+
     def create_collapsible_section(self, parent, title, default_open=True, body_pack_opts=None, on_toggle=None):
         if body_pack_opts is None:
             body_pack_opts = {"fill": tk.X}
@@ -401,7 +422,7 @@ class Insta360ConvertGUI(tk.Tk):
         header_frame.bind("<Button-1>", lambda event: toggle_section())
         title_label.bind("<Button-1>", lambda event: toggle_section())
 
-        section_frame.configure(labelwidget=header_frame)
+        header_frame.pack(fill=tk.X, pady=(0, 2))
 
         if default_open:
             body_frame.pack(**body_pack_opts)
@@ -495,15 +516,16 @@ class Insta360ConvertGUI(tk.Tk):
         )
         self.yaw_selector_widget.pack(fill=tk.BOTH, expand=True)
 
-        bottom_content_frame = ttk.Frame(self.main_content_paned_window)
-        self.main_content_paned_window.add(bottom_content_frame, weight=2)
+        self.bottom_content_frame = ttk.Frame(self.main_content_paned_window)
+        self.main_content_paned_window.add(self.bottom_content_frame, weight=2)
 
         self.output_settings_frame, self.output_settings_body, self.output_settings_toggle_var, self.output_settings_header_label = (
             self.create_collapsible_section(
-                bottom_content_frame,
+                self.bottom_content_frame,
                 title="",
                 default_open=True,
-                body_pack_opts={"fill": tk.X, "expand": False}
+                body_pack_opts={"fill": tk.X, "expand": False},
+                on_toggle=self._on_bottom_section_toggled
             )
         )
         self.output_settings_frame.pack(fill=tk.X, pady=2, side=tk.TOP)
@@ -603,7 +625,7 @@ class Insta360ConvertGUI(tk.Tk):
         self.cq_entry.pack(side=tk.LEFT, padx=(0,5))
         format_options_main_frame.columnconfigure(1, weight=1)
 
-        self.control_frame_outer = ttk.Frame(bottom_content_frame, padding=(5,0))
+        self.control_frame_outer = ttk.Frame(self.bottom_content_frame, padding=(5,0))
         self.control_frame_outer.pack(fill=tk.X, pady=2, side=tk.TOP)
 
         self.parallel_control_frame = ttk.Frame(self.control_frame_outer)
@@ -636,10 +658,11 @@ class Insta360ConvertGUI(tk.Tk):
 
         self.colmap_pipeline_frame, self.colmap_pipeline_body, self.colmap_pipeline_toggle_var, self.colmap_pipeline_header_label = (
             self.create_collapsible_section(
-                bottom_content_frame,
+                self.bottom_content_frame,
                 title="",
                 default_open=False,
-                body_pack_opts={"fill": tk.X, "expand": False}
+                body_pack_opts={"fill": tk.X, "expand": False},
+                on_toggle=self._on_bottom_section_toggled
             )
         )
         self.colmap_pipeline_frame.pack(fill=tk.X, pady=2, side=tk.TOP)
@@ -715,6 +738,7 @@ class Insta360ConvertGUI(tk.Tk):
         self.ffmpeg_log_area.pack(expand=True, fill=tk.BOTH)
 
         self._update_settings_scrollregion()
+        self.after(0, self._adjust_main_content_sash_for_bottom)
         self.after(0, self._set_main_paned_sash)
 
 
