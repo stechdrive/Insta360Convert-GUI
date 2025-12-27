@@ -1,11 +1,11 @@
-# Insta360Convert GUI v2.3.0
+# Insta360Convert GUI v2.3.1
 
 **Insta360Convert GUI** is a user-friendly desktop application designed to extract multiple defined perspective views (defined by pitch, yaw, and Field of View) from 360° equirectangular videos and export them as video clips or image sequences. It's a versatile tool for photogrammetry, VR content creation, visual effects, and various other video production workflows. This application supports English and Japanese user interfaces.
 
 **⚠️ Important Prerequisites: This application requires Python (3.9 or newer) and FFmpeg to be installed on your system, along with Tkinter (8.6 or newer, usually included with Python). Please see the "Requirements" section below for details.**
 
 **[日本語]**
-**Insta360Convert GUI v2.3.0** は、360°動画 (エクイレクタングラー形式)から、指定した複数の視点(ピッチ角、ヨー角、視野角)を切り出して、動画または静止画シーケンスとして出力するためのGUIアプリケーションです。フォトグラメトリやVRコンテンツ制作、映像作品の素材作成など、幅広い用途にご利用いただけます。本アプリケーションは日本語と英語のユーザーインターフェースに対応しています。
+**Insta360Convert GUI v2.3.1** は、360°動画 (エクイレクタングラー形式)から、指定した複数の視点(ピッチ角、ヨー角、視野角)を切り出して、動画または静止画シーケンスとして出力するためのGUIアプリケーションです。フォトグラメトリやVRコンテンツ制作、映像作品の素材作成など、幅広い用途にご利用いただけます。本アプリケーションは日本語と英語のユーザーインターフェースに対応しています。
 
 **⚠️ 事前の重要事項: このアプリケーションを使用するには、お使いのシステムに Python (3.9 以降) と FFmpeg がインストールされており、Tkinter (8.6 以降、通常Pythonに同梱) が利用可能である必要があります。詳細は下記の「1. 準備するもの」セクションをご覧ください。**
 
@@ -82,6 +82,7 @@ To use this application, you will need the following software and files:
     *   `advanced_yaw_selector.py` (Viewpoint setting UI module)
     *   `ffmpeg_worker.py` (FFmpeg processing worker script)
     *   `colmap_rig_export.py` (COLMAP rig export helper)
+    *   `colmap_pipeline_options.py` (COLMAP pipeline options helper)
     *   `constants.py` (Configuration values definition file)
     *   `strings.py` (User interface string definitions for internationalization)
     *   `tooltip_utils.py` (Tooltip display utility)
@@ -106,6 +107,7 @@ To use this application, you will need the following software and files:
     *   `advanced_yaw_selector.py` (視点設定 UI モジュール)
     *   `ffmpeg_worker.py` (FFmpeg 処理ワーカースクリプト)
     *   `colmap_rig_export.py` (COLMAP Rig書き出しヘルパー)
+    *   `colmap_pipeline_options.py` (COLMAPパイプライン用オプションヘルパー)
     *   `constants.py` (設定値定義ファイル)
     *   `strings.py` (国際化対応のためのUI文字列定義ファイル)
     *   `tooltip_utils.py` (ツールチップ表示ユーティリティ)
@@ -162,9 +164,9 @@ To start converting quickly with default-like settings:
 
 1.  **Select Input Video File:** In the "File Settings" section at the top, click the "Browse..." button next to "Input Video File" and select your 360° video file (already exported to equirectangular format).
 2.  **Check Output Folder:** When an input video is selected, the same folder is automatically set as the output destination. If you want to change it, use the "Browse..." button next to "Output Folder".
-3.  **Review Viewpoint Settings:** By default, for a 0° pitch angle, 8 viewpoints (yaw angles 0°, 45°, ..., 315°) are selected, and the FOV for each is set to 100°. Adjust as needed in the "Viewpoint Settings (Pitch/Yaw/FOV)" section.
-4.  **Check Output Format:** "PNG Sequence" is selected by default. If you prefer video or JPEG output, change this in the "Output Settings" section.
-5.  **Start Conversion:** Click the "Start Conversion" button at the bottom of the window.
+3.  **Check Output Format:** "PNG Sequence" is selected by default. If you prefer video or JPEG output, change this in the "Output Settings" section.
+4.  **Review Viewpoint Settings:** By default, for a 0° pitch angle, 8 viewpoints (yaw angles 0°, 45°, ..., 315°) are selected, and the FOV for each is set to 100°. Adjust as needed in the "Viewpoint Settings (Pitch/Yaw/FOV)" section.
+5.  **Start Conversion:** Click the "Start Conversion" button near the top of the "Output Settings" section.
 
 Processing will begin with settings close to the defaults. For more detailed configuration, refer to "4. Main Interface and Settings" below. Many UI elements display a tooltip with a brief explanation when you hover the mouse cursor over them. You can switch the UI language via the "Language (言語)" menu.
 
@@ -174,9 +176,9 @@ Processing will begin with settings close to the defaults. For more detailed con
 
 1.  **入力動画ファイルを選択:** ウィンドウ上部の「ファイル設定」セクションにある「入力動画ファイル」の右の「参照...」ボタンを押し、変換したい 360°動画ファイル(エクイレクタングラー形式にエクスポート済みのもの)を選択します。
 2.  **出力フォルダを確認:** 入力動画を選択すると、自動的に同じフォルダが出力先に設定されます。変更したい場合のみ、「出力フォルダ」の「参照...」ボタンで変更します。
-3.  **視点設定を確認:** デフォルトでは、ピッチ角 0°に対して水平方向に8分割された視点(ヨー角0°, 45°, ..., 315°)が選択され、各視点の FOV は 100°に設定されています。必要に応じて、「視点設定(ピッチ・ヨー・FOV)」セクションで調整します。
-4.  **出力形式を確認:** デフォルトでは「PNG シーケンス」が選択されています。動画で出力したい場合や、JPEG で出力したい場合は、「出力設定」セクションで変更します。
-5.  **変換開始:** ウィンドウ下部にある「変換開始」ボタンをクリックします。
+3.  **出力形式を確認:** デフォルトでは「PNG シーケンス」が選択されています。動画で出力したい場合や、JPEG で出力したい場合は、「出力設定」セクションで変更します。
+4.  **視点設定を確認:** デフォルトでは、ピッチ角 0°に対して水平方向に8分割された視点(ヨー角0°, 45°, ..., 315°)が選択され、各視点の FOV は 100°に設定されています。必要に応じて、「視点設定(ピッチ・ヨー・FOV)」セクションで調整します。
+5.  **変換開始:** 「出力設定」セクション上部にある「変換開始」ボタンをクリックします。
 
 これで、デフォルト設定に近い形で処理が開始されます。詳細な設定を変更したい場合は、次の「4. 操作画面と設定項目」を参照してください。多くの UI 要素にマウスカーソルを合わせると、簡単な説明がツールチップとして表示されます。「言語 (Language)」メニューからUI言語を切り替えることも可能です。
 
@@ -193,47 +195,7 @@ Processing will begin with settings close to the defaults. For more detailed con
     *   Specify the folder for the output files.
     *   Automatically set to the input video's folder upon input selection; can be changed using "Browse...".
 
-**4.2. Viewpoint Settings (Pitch/Yaw/FOV)**
-
-This entire section is provided by the "Advanced Yaw Selector" module.
-
-**Left Panel:**  
-*   **Add/Remove Pitch Angle:**
-    *   Select a pitch angle from the dropdown list and click "Add" to add it to the "Output Pitch Angle List". Up to 7 pitch angles can be registered.
-    *   Click "Remove" to delete the currently selected pitch angle from the list (at least one must remain).
-*   **Output Pitch Angle List:**
-    *   Displays currently configured pitch angles. Selecting an item in this list updates the right-side controls and 3D preview with its detailed settings (pitch value, FOV, number of yaw divisions, yaw selections).
-*   **Reset Buttons:**
-    *   "P.Reset": Resets the pitch angle list to the default settings (e.g., -30,0,30 degrees).
-    *   "FOV.Rst": Resets the FOV of the currently selected pitch angle to its default value (100 degrees).
-*   **Yaw Selection Buttons:**
-    *   Displays buttons for yaw angles based on the "Number of Horizontal Viewpoints" set for the currently selected pitch.
-    *   Clicking each button toggles the corresponding yaw angle for output (on/off). The button color corresponds to the viewpoint color in the 3D preview.
-
-**Right Panel:**
-
-*   **Pitch Angle Adjust Slider/Entry:**
-    *   Adjust the precise value of the selected pitch angle from the list using the slider or by numerical input (-90° to +90°). Changes are reflected in the list.
-*   **FOV Adjust Slider/Entry:**
-    *   Adjust the Field of View (FOV) for the selected pitch angle using the slider or numerical input (30° to 120°).
-    *   *For photogrammetry, an FOV around 90°-100° often provides a good balance between distortion and overlap, but adjust based on the subject and shooting method.*
-*   **Number of Horizontal Viewpoints Slider:**
-    *   For the selected pitch angle, specify how many viewpoints (yaw angles) to generate horizontally (how many divisions of a circle) within a range of 1 to 12.
-    *   Changing this value resets all yaw selections for that pitch to "selected", and the yaw selection button group below it is updated.
-*   **3D Preview Canvas:**
-    *   Visually displays the current viewpoint settings on a 3D sphere.
-    *   **Controls:**
-        *   **Left-drag:** Rotate the sphere to view from different angles.
-        *   **Right-click (empty space):** Toggle selection of the viewpoint visually closest to the click location.
-        *   **Right-click (viewpoint label):** Toggle selection of the specific yaw angle associated with the label.
-    *   **Display:**
-        *   Selected viewpoints are shown as colored cones (pyramid-shaped) representing the FOV. Colors correspond to the yaw buttons.
-        *   FOV planes of unselected viewpoints may be shown semi-transparently or as outlines.
-        *   The top-left corner displays info: current pitch, its FOV, number of divisions, and total selected viewpoints.
-        *   A simple operation guide ("Left-drag:Rotate Right-click:Toggle VP") is shown in the top-right.
-        *   An equator line for the current pitch is drawn as a dotted line on the sphere.
-
-**4.3. Output Settings**  
+**4.2. Output Settings**  
 
 *   **Resolution:**
     *   Specifies the side length (in pixels) of the square output images/videos.
@@ -274,6 +236,46 @@ This entire section is provided by the "Advanced Yaw Selector" module.
             *   **Preset:** Specifies the encoding speed vs. compression balance (e.g., `medium`, `slow`). Default is `medium`.
             *   **CQ/CRF:** Specifies the encoding quality. Lower values mean higher quality (and larger files). Range 0-51, typically 15-28. Default is `18`. (Handled as CQ for CUDA, CRF for CPU).
 
+**4.3. Viewpoint Settings (Pitch/Yaw/FOV)**
+
+This entire section is provided by the "Advanced Yaw Selector" module.
+
+**Left Panel:**  
+*   **Add/Remove Pitch Angle:**
+    *   Select a pitch angle from the dropdown list and click "Add" to add it to the "Output Pitch Angle List". Up to 7 pitch angles can be registered.
+    *   Click "Remove" to delete the currently selected pitch angle from the list (at least one must remain).
+*   **Output Pitch Angle List:**
+    *   Displays currently configured pitch angles. Selecting an item in this list updates the right-side controls and 3D preview with its detailed settings (pitch value, FOV, number of yaw divisions, yaw selections).
+*   **Reset Buttons:**
+    *   "P.Reset": Resets the pitch angle list to the default settings (e.g., -30,0,30 degrees).
+    *   "FOV.Rst": Resets the FOV of the currently selected pitch angle to its default value (100 degrees).
+*   **Yaw Selection Buttons:**
+    *   Displays buttons for yaw angles based on the "Number of Horizontal Viewpoints" set for the currently selected pitch.
+    *   Clicking each button toggles the corresponding yaw angle for output (on/off). The button color corresponds to the viewpoint color in the 3D preview.
+
+**Right Panel:**
+
+*   **Pitch Angle Adjust Slider/Entry:**
+    *   Adjust the precise value of the selected pitch angle from the list using the slider or by numerical input (-90° to +90°). Changes are reflected in the list.
+*   **FOV Adjust Slider/Entry:**
+    *   Adjust the Field of View (FOV) for the selected pitch angle using the slider or numerical input (30° to 120°).
+    *   *For photogrammetry, an FOV around 90°-100° often provides a good balance between distortion and overlap, but adjust based on the subject and shooting method.*
+*   **Number of Horizontal Viewpoints Slider:**
+    *   For the selected pitch angle, specify how many viewpoints (yaw angles) to generate horizontally (how many divisions of a circle) within a range of 1 to 12.
+    *   Changing this value resets all yaw selections for that pitch to "selected", and the yaw selection button group below it is updated.
+*   **3D Preview Canvas:**
+    *   Visually displays the current viewpoint settings on a 3D sphere.
+    *   **Controls:**
+        *   **Left-drag:** Rotate the sphere to view from different angles.
+        *   **Right-click (empty space):** Toggle selection of the viewpoint visually closest to the click location.
+        *   **Right-click (viewpoint label):** Toggle selection of the specific yaw angle associated with the label.
+    *   **Display:**
+        *   Selected viewpoints are shown as colored cones (pyramid-shaped) representing the FOV. Colors correspond to the yaw buttons.
+        *   FOV planes of unselected viewpoints may be shown semi-transparently or as outlines.
+        *   The top-left corner displays info: current pitch, its FOV, number of divisions, and total selected viewpoints.
+        *   A simple operation guide ("Left-drag:Rotate Right-click:Toggle VP") is shown in the top-right.
+        *   An equator line for the current pitch is drawn as a dotted line on the sphere.
+
 **4.4. COLMAP Pipeline**
 
 *   **COLMAP Rig Folder:** Select the `colmap_rig` folder (must contain `images/` and `rig_config.json`).
@@ -288,9 +290,11 @@ This entire section is provided by the "Advanced Yaw Selector" module.
 
 **4.5. Controls and Progress**  
 
+Controls are located at the top of the Output Settings section.
+
 *   **Parallel Processes:**  Specify the number of viewpoints to process simultaneously (number of FFmpeg processes). Selectable from 1 up to the number of logical CPU cores on your PC. The default value is automatically set based on the total number of pitch angles in the "Output Pitch Angle List" (capped by the PC's logical core count). This default updates if you change the number of pitch angles. Increasing this may speed up processing but also increases CPU load and memory usage. The optimal value varies by environment; manual adjustment may be beneficial.  
 
-*   **Start Conversion Button:** After confirming all settings, click this to begin the conversion process.
+*   **Start Conversion Button (top of Output Settings):** After confirming all settings, click this to begin the conversion process.
 *   **Cancel Button:** Click this during conversion to interrupt the process.
 *   **Time Display:** During conversion, displays "Elapsed Time" and "Overall Remaining" time.
         *   "Elapsed Time": Total time since conversion started.
@@ -321,45 +325,7 @@ The application window includes a menu bar at the top.
     *   変換後のファイルの出力先を指定。
     *   入力動画選択時に同じフォルダが自動設定。変更は「参照...」から。
 
-**4.2. 視点設定(ピッチ・ヨー・FOV)**  
-    このセクションは「Advanced Yaw Selector」モジュールで提供。
-
-**左側パネル:**  
-*   **ピッチ角追加/削除:**
-    *   ドロップダウンからピッチ角を選び「追加」でリストに追加（最大7個）。
-    *   「削除」でリストから選択中のピッチ角を削除（最低1つは残る）。
-*   **出力するピッチ角リスト:**
-    *   設定済みのピッチ角を表示。選択すると右側のコントロールと3Dプレビューに詳細設定（ピッチ値、FOV、水平視点数、ヨー角選択）が反映。
-*   **リセットボタン:**
-    *   「P.Reset」: ピッチ角リストをデフォルト（例: -30,0,30度）にリセット。
-    *   「FOV.Rst」: 選択中ピッチ角のFOVをデフォルト値（100度）にリセット。
-*   **ヨー角選択ボタン:**
-    *   選択中ピッチ角の「水平視点数」に基づきヨー角ボタンを表示。
-    *   クリックで対応ヨー角の選択(オン)/非選択(オフ)を切替。ボタン色は3Dプレビューの視点色と連動。
-
-**右側パネル:**
-*   **ピッチ角調整スライダー/入力欄:**
-    *   選択中ピッチ角の値をスライダーまたは数値入力で調整(-90°~+90°)。変更はリストにも反映。
-*   **FOV 調整スライダー/入力欄:**
-    *   選択中ピッチ角の視野角(FOV)をスライダーまたは数値入力で調整(30°~120°)。
-    *   *フォトグラメトリ用途では、90°~100°程度が歪みとオーバーラップのバランスが良いとされますが、対象物や撮影方法によって調整してください。*
-*   **水平視点数スライダー:**
-    *   選択中ピッチ角に対し、水平方向の視点(ヨー角)を何分割で生成するかを1~12で指定。
-    *   値を変更すると、そのピッチ角のヨー角は全選択状態になり、ヨー角選択ボタン群も更新。
-*   **3D プレビューキャンバス:**
-    *   現在の視点設定を3D球体上に表示。
-    *   **操作:**
-        *   左ドラッグ: 球体を回転。
-        *   右クリック(何もない空間): クリック位置に最も近い視点の選択/非選択をトグル。
-        *   右クリック(視点ラベル): ラベルのヨー角の選択/非選択をトグル。
-    *   **表示:**
-        *   選択視点はFOVを表す錐体(ピラミッド型)として色付き表示（色はヨー角ボタンと連動）。
-        *   非選択視点のFOV平面は半透明または輪郭のみ表示。
-        *   左上に現在の選択ピッチ、FOV、水平分割数、総視点数を表示。
-        *   右上に「左ドラッグ:回転 右クリック:視点選択/解除」の操作ガイド表示。
-        *   球体上に現在選択ピッチの赤道線を点線描画。
-
-**4.3. 出力設定**
+**4.2. 出力設定**
 
 *   **解像度:**
     *   出力する正方形の画像/動画の一辺のピクセル数を指定。
@@ -401,6 +367,44 @@ The application window includes a menu bar at the top.
         *   **Preset:** エンコード速度と品質のバランス指定(例: `medium`, `slow`)。デフォルト`medium`。
         *   **CQ/CRF:** エンコード品質指定。数値が低いほど高品質(ファイルサイズ大)。0～51の範囲、通常15～28程度。デフォルト`18`(CUDAはCQ, CPUはCRFとして扱われる)。
 
+**4.3. 視点設定(ピッチ・ヨー・FOV)**  
+    このセクションは「Advanced Yaw Selector」モジュールで提供。
+
+**左側パネル:**  
+*   **ピッチ角追加/削除:**
+    *   ドロップダウンからピッチ角を選び「追加」でリストに追加（最大7個）。
+    *   「削除」でリストから選択中のピッチ角を削除（最低1つは残る）。
+*   **出力するピッチ角リスト:**
+    *   設定済みのピッチ角を表示。選択すると右側のコントロールと3Dプレビューに詳細設定（ピッチ値、FOV、水平視点数、ヨー角選択）が反映。
+*   **リセットボタン:**
+    *   「P.Reset」: ピッチ角リストをデフォルト（例: -30,0,30度）にリセット。
+    *   「FOV.Rst」: 選択中ピッチ角のFOVをデフォルト値（100度）にリセット。
+*   **ヨー角選択ボタン:**
+    *   選択中ピッチ角の「水平視点数」に基づきヨー角ボタンを表示。
+    *   クリックで対応ヨー角の選択(オン)/非選択(オフ)を切替。ボタン色は3Dプレビューの視点色と連動。
+
+**右側パネル:**
+*   **ピッチ角調整スライダー/入力欄:**
+    *   選択中ピッチ角の値をスライダーまたは数値入力で調整(-90°~+90°)。変更はリストにも反映。
+*   **FOV 調整スライダー/入力欄:**
+    *   選択中ピッチ角の視野角(FOV)をスライダーまたは数値入力で調整(30°~120°)。
+    *   *フォトグラメトリ用途では、90°~100°程度が歪みとオーバーラップのバランスが良いとされますが、対象物や撮影方法によって調整してください。*
+*   **水平視点数スライダー:**
+    *   選択中ピッチ角に対し、水平方向の視点(ヨー角)を何分割で生成するかを1~12で指定。
+    *   値を変更すると、そのピッチ角のヨー角は全選択状態になり、ヨー角選択ボタン群も更新。
+*   **3D プレビューキャンバス:**
+    *   現在の視点設定を3D球体上に表示。
+    *   **操作:**
+        *   左ドラッグ: 球体を回転。
+        *   右クリック(何もない空間): クリック位置に最も近い視点の選択/非選択をトグル。
+        *   右クリック(視点ラベル): ラベルのヨー角の選択/非選択をトグル。
+    *   **表示:**
+        *   選択視点はFOVを表す錐体(ピラミッド型)として色付き表示（色はヨー角ボタンと連動）。
+        *   非選択視点のFOV平面は半透明または輪郭のみ表示。
+        *   左上に現在の選択ピッチ、FOV、水平分割数、総視点数を表示。
+        *   右上に「左ドラッグ:回転 右クリック:視点選択/解除」の操作ガイド表示。
+        *   球体上に現在選択ピッチの赤道線を点線描画。
+
 **4.4. COLMAPパイプライン**
 
 *   **COLMAP Rigフォルダ:** `colmap_rig` フォルダを選択（`images/` と `rig_config.json` が必要）。
@@ -414,8 +418,10 @@ The application window includes a menu bar at the top.
 *   **COLMAP実行:** feature_extractor → rig_configurator → matcher → mapper → image_undistorter を実行。
 
 **4.5. コントロールと進捗**
+
+※これらのコントロールは「出力設定」セクションの上部に配置されています。
 *   **並列処理数:** 同時に処理する視点の数(FFmpegプロセス数)を指定。PCのCPUコア数に応じ1から最大論理コア数まで選択可。デフォルト値は「出力するピッチ角リスト」のピッチ角総数(PC論理コア数上限)に自動設定され、ピッチ角数変更に追随。値を大きくすると処理が速くなる可能性があるがCPU負荷やメモリ使用量が増加。最適値は環境依存のため手動調整も可。
-*   **変換開始ボタン:** 全設定確認後、クリックで変換処理開始。
+*   **変換開始ボタン(出力設定の上部):** 全設定確認後、クリックで変換処理開始。
 *   **中止ボタン:** 変換処理中にクリックで処理中断。
 *   **時間表示:** 変換中、「経過時間」「全体残り」形式で表示。
     *   「経過時間」: 変換開始からの総経過時間。
