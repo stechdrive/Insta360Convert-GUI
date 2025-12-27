@@ -2,11 +2,11 @@
 # アプリケーション全体で使用する定数 (翻訳不要なもの)
 
 # --- バージョン情報 ---
-APP_RELEASE_DATE = "2025-12-25" # リリース日 (ユーザー提供の値を維持)
+APP_RELEASE_DATE = "2025-12-27" # リリース日 (ユーザー提供の値を維持)
 
 APP_VERSION_MAJOR = 2
 APP_VERSION_MINOR = 3
-APP_VERSION_PATCH = 0
+APP_VERSION_PATCH = 1
 APP_VERSION_STRING_SEMVER = f"v{APP_VERSION_MAJOR}.{APP_VERSION_MINOR}.{APP_VERSION_PATCH}"
 
 # --- FFmpeg関連定数 ---
@@ -14,6 +14,9 @@ FFMPEG_PRESETS = ["ultrafast", "superfast", "veryfast", "faster", "fast", "mediu
 DEFAULT_PRESET = "medium"
 DEFAULT_RESOLUTION_WIDTH = 1920  # 解像度指定が無効な場合のフォールバック値
 HIGH_RESOLUTION_THRESHOLD = 4096 # この解像度を超える入力は高解像度とみなし、CUDA互換性テストの対象とする
+
+# --- COLMAP関連定数 ---
+COLMAP_DEFAULT_PRESET_KEY = "balanced"
 
 # --- GitHub関連定数 (アップデートチェック用) ---
 GITHUB_REPO_OWNER = "stechdrive"
