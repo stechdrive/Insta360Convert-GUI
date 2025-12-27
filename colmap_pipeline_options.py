@@ -70,7 +70,7 @@ def _stringify_option_value(value):
     return str(value)
 
 
-def build_colmap_command(base_command, options):
+def build_colmap_command(base_command, options, supported_options=None, alias_map=None, skipped=None):
     command = list(base_command)
     if not options:
         return command
@@ -79,7 +79,22 @@ def build_colmap_command(base_command, options):
             continue
         if isinstance(value, str) and not value.strip():
             continue
-        command.extend([f"--{key}", _stringify_option_value(value)])
+        option_key = key
+        if supported_options is not None and key not in supported_options:
+            option_key = None
+            if alias_map and key in alias_map:
+                candidates = alias_map[key]
+                if isinstance(candidates, str):
+                    candidates = [candidates]
+                for candidate in candidates:
+                    if candidate in supported_options:
+                        option_key = candidate
+                        break
+            if option_key is None:
+                if skipped is not None:
+                    skipped.append(key)
+                continue
+        command.extend([f"--{option_key}", _stringify_option_value(value)])
     return command
 
 

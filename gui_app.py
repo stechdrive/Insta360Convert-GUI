@@ -9,6 +9,7 @@ import json
 import time
 import shutil
 import hashlib
+import re
 from datetime import timedelta
 import multiprocessing
 import threading # For background update check
@@ -135,6 +136,7 @@ class Insta360ConvertGUI(tk.Tk):
         self.colmap_advanced_dialog = None
         self.colmap_last_completed_step = None
         self.colmap_pipeline_state_data = None
+        self.colmap_supported_options_cache = {}
 
         self.active_tasks_count = 0
         self.completed_tasks_count = 0
@@ -1651,6 +1653,44 @@ class Insta360ConvertGUI(tk.Tk):
         serialized = json.dumps(payload, sort_keys=True, ensure_ascii=False)
         return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
 
+    def _get_colmap_supported_options(self, colmap_exec, command_name):
+        if not colmap_exec or not command_name:
+            return None
+        cache_key = (colmap_exec, command_name)
+        if cache_key in self.colmap_supported_options_cache:
+            return self.colmap_supported_options_cache[cache_key]
+        command = [colmap_exec, command_name, "-h"]
+        try:
+            res = subprocess.run(
+                command,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=10,
+                startupinfo=self.get_startupinfo()
+            )
+        except subprocess.TimeoutExpired:
+            self.log_message_ui_threadsafe("log_colmap_pipeline_options_help_failed_format",
+                                           "WARNING", is_key=True, command=command_name, error="timeout")
+            return None
+        except Exception as e: # pylint: disable=broad-except
+            self.log_message_ui_threadsafe("log_colmap_pipeline_options_help_failed_format",
+                                           "WARNING", is_key=True, command=command_name, error=str(e))
+            return None
+        if res.returncode != 0:
+            self.log_message_ui_threadsafe("log_colmap_pipeline_options_help_failed_format",
+                                           "WARNING", is_key=True, command=command_name,
+                                           error=f"code {res.returncode}")
+            return None
+        output = res.stdout or ""
+        option_names = set(re.findall(r"--([A-Za-z0-9_.]+)", output))
+        if not option_names:
+            return None
+        self.colmap_supported_options_cache[cache_key] = option_names
+        return option_names
+
     def _get_next_colmap_step(self, last_step):
         if last_step not in COLMAP_PIPELINE_STEPS:
             return COLMAP_PIPELINE_STEPS[0]
@@ -1878,6 +1918,16 @@ class Insta360ConvertGUI(tk.Tk):
             start_index = COLMAP_PIPELINE_STEPS.index(start_step)
             state_path = config.get("state_path")
             state_data = config.get("state_data") or {}
+            matcher_name = config["matcher"]
+
+            def apply_supported_options(command_name, base_cmd, option_values, alias_map=None):
+                supported = self._get_colmap_supported_options(colmap_exec, command_name)
+                skipped = []
+                command = build_colmap_command(base_cmd, option_values, supported, alias_map=alias_map, skipped=skipped)
+                if skipped:
+                    self.log_message_ui_threadsafe("log_colmap_pipeline_options_filtered_format", "WARNING", is_key=True,
+                                                   command=command_name, options=", ".join(sorted(set(skipped))))
+                return command
 
             feature_cmd = [
                 colmap_exec, "feature_extractor",
@@ -1886,26 +1936,34 @@ class Insta360ConvertGUI(tk.Tk):
                 "--ImageReader.single_camera_per_folder", "1",
                 "--ImageReader.camera_model", "PINHOLE"
             ]
-            feature_cmd = build_colmap_command(feature_cmd, options.get("feature", {}))
+            feature_cmd = apply_supported_options("feature_extractor", feature_cmd, options.get("feature", {}))
             rig_cmd = [
                 colmap_exec, "rig_configurator",
                 "--database_path", db_path,
                 "--rig_config_path", rig_config
             ]
-            if config["matcher"] == "exhaustive":
+            if matcher_name == "exhaustive":
                 matcher_cmd = [colmap_exec, "exhaustive_matcher", "--database_path", db_path]
-            elif config["matcher"] == "vocab_tree":
+                matcher_command_name = "exhaustive_matcher"
+            elif matcher_name == "vocab_tree":
                 matcher_cmd = [colmap_exec, "vocab_tree_matcher", "--database_path", db_path]
+                matcher_command_name = "vocab_tree_matcher"
             else:
                 matcher_cmd = [colmap_exec, "sequential_matcher", "--database_path", db_path]
-            matcher_cmd = build_colmap_command(matcher_cmd, options.get("matcher", {}))
+                matcher_command_name = "sequential_matcher"
+            matcher_alias_map = {
+                "SiftMatching.guided_matching": ["FeatureMatching.guided_matching"]
+            }
+            matcher_cmd = apply_supported_options(matcher_command_name, matcher_cmd,
+                                                  options.get("matcher", {}),
+                                                  alias_map=matcher_alias_map)
             mapper_cmd = [
                 colmap_exec, "mapper",
                 "--database_path", db_path,
                 "--image_path", images_dir,
                 "--output_path", sparse_dir
             ]
-            mapper_cmd = build_colmap_command(mapper_cmd, options.get("mapper", {}))
+            mapper_cmd = apply_supported_options("mapper", mapper_cmd, options.get("mapper", {}))
 
             step_commands = [
                 ("feature_extractor", feature_cmd),
