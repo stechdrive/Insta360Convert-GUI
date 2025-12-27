@@ -10,6 +10,7 @@ import time
 import shutil
 import hashlib
 import re
+import sqlite3
 from datetime import timedelta
 import multiprocessing
 import threading # For background update check
@@ -57,6 +58,9 @@ COLMAP_PIPELINE_STEPS = [
     "mapper",
     "image_undistorter"
 ]
+
+COLMAP_FEATURE_PROGRESS_RE = re.compile(r"Processed file \\[(\\d+)/(\\d+)\\]")
+COLMAP_MAPPER_PROGRESS_RE = re.compile(r"Registering image #\\d+ \\(num_reg_frames=(\\d+)\\)")
 
 
 class Insta360ConvertGUI(tk.Tk):
@@ -137,6 +141,16 @@ class Insta360ConvertGUI(tk.Tk):
         self.colmap_last_completed_step = None
         self.colmap_pipeline_state_data = None
         self.colmap_supported_options_cache = {}
+        self.colmap_progress_text_var = tk.StringVar()
+        self.colmap_progress_step = None
+        self.colmap_progress_current = 0
+        self.colmap_progress_total = 0
+        self.colmap_step_start_time = None
+        self.colmap_progress_mode = None
+        self.colmap_progress_after_id = None
+        self.colmap_progress_next_poll_time = 0
+        self.colmap_progress_db_path = None
+        self.colmap_progress_postshot_output = None
 
         self.active_tasks_count = 0
         self.completed_tasks_count = 0
@@ -273,6 +287,7 @@ class Insta360ConvertGUI(tk.Tk):
         self.png_pred_var.set("Average")
 
         self.viewpoint_progress_text_var.set(S.get("viewpoint_progress_format", completed=0, total=0))
+        self.colmap_progress_text_var.set(S.get("colmap_progress_idle"))
 
         self.io_frame = ttk.LabelFrame(self.main_frame, text="", padding="5")
         self.io_frame.pack(fill=tk.X, pady=2, side=tk.TOP)
@@ -488,6 +503,12 @@ class Insta360ConvertGUI(tk.Tk):
         self.colmap_run_button.grid(row=6, column=0, padx=5, pady=(4, 2), sticky=tk.W)
         self.colmap_cancel_button = ttk.Button(self.colmap_pipeline_frame, text="", command=self.cancel_colmap_pipeline, state="disabled")
         self.colmap_cancel_button.grid(row=6, column=1, padx=5, pady=(4, 2), sticky=tk.W)
+        self.colmap_progress_frame = ttk.Frame(self.colmap_pipeline_frame)
+        self.colmap_progress_frame.grid(row=7, column=0, columnspan=5, padx=5, pady=(2, 0), sticky=tk.EW)
+        self.colmap_progress_label = ttk.Label(self.colmap_progress_frame, textvariable=self.colmap_progress_text_var)
+        self.colmap_progress_label.pack(side=tk.LEFT, padx=(0, 5))
+        self.colmap_progress_bar = ttk.Progressbar(self.colmap_progress_frame, orient="horizontal", length=200, mode="determinate")
+        self.colmap_progress_bar.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
         self.colmap_pipeline_frame.columnconfigure(1, weight=1)
         self.colmap_pipeline_frame.columnconfigure(3, weight=1)
 
@@ -644,6 +665,7 @@ class Insta360ConvertGUI(tk.Tk):
         self.cancel_button.config(text=S.get("cancel_button_label"))
         self.update_time_label_display()
         self.viewpoint_progress_text_var.set(S.get("viewpoint_progress_format", completed=self.completed_tasks_count, total=self.total_tasks_for_conversion))
+        self._update_colmap_progress_display()
 
         self.log_notebook.tab(self.app_log_frame, text=S.get("log_tab_app_log_label"))
         self.log_notebook.tab(self.ffmpeg_log_frame, text=S.get("log_tab_ffmpeg_log_label"))
@@ -686,6 +708,8 @@ class Insta360ConvertGUI(tk.Tk):
         self.add_tooltip_managed(self.colmap_postshot_browse, "colmap_postshot_output_browse_tooltip")
         self.add_tooltip_managed(self.colmap_run_button, "colmap_run_button_tooltip")
         self.add_tooltip_managed(self.colmap_cancel_button, "colmap_cancel_button_tooltip")
+        self.add_tooltip_managed(self.colmap_progress_label, "colmap_progress_tooltip")
+        self.add_tooltip_managed(self.colmap_progress_bar, "colmap_progress_tooltip")
         self.add_tooltip_managed(self.png_radio, "png_radio_tooltip")
         self.add_tooltip_managed(self.png_interval_label, "png_interval_label_tooltip")
         self.add_tooltip_managed(self.png_frame_interval_entry, "png_frame_interval_entry_tooltip")
@@ -1640,6 +1664,251 @@ class Insta360ConvertGUI(tk.Tk):
                 latest_mtime = max(latest_mtime, int(mtime))
         return {"count": count, "latest_mtime": int(latest_mtime)}
 
+    def _get_frame_count(self, images_dir):
+        if not images_dir or not os.path.isdir(images_dir):
+            return 0
+        frame_names = set()
+        for root, _, files in os.walk(images_dir):
+            for name in files:
+                if not name.lower().endswith((".png", ".jpg", ".jpeg")):
+                    continue
+                frame_names.add(os.path.splitext(name)[0])
+        return len(frame_names)
+
+    def _estimate_matcher_total_pairs(self, matcher_name, options, image_count):
+        try:
+            num_images = int(image_count or 0)
+        except (TypeError, ValueError):
+            num_images = 0
+        if num_images <= 1:
+            return 0
+        matcher_options = (options or {}).get("matcher", {})
+
+        def as_int(key, default):
+            try:
+                return int(matcher_options.get(key, default))
+            except (TypeError, ValueError):
+                return default
+
+        def as_bool(key, default):
+            value = matcher_options.get(key, default)
+            try:
+                return int(value) != 0
+            except (TypeError, ValueError):
+                return bool(value)
+
+        if matcher_name == "exhaustive":
+            return (num_images * (num_images - 1)) // 2
+        if matcher_name == "vocab_tree":
+            vocab_num_images = max(1, as_int("VocabTreeMatching.num_images", 100))
+            return num_images * vocab_num_images
+
+        overlap = max(1, as_int("SequentialMatching.overlap", 10))
+        total = num_images * overlap
+        if as_bool("SequentialMatching.quadratic_overlap", True):
+            total *= 2
+        if as_bool("SequentialMatching.loop_detection", False):
+            loop_images = max(1, as_int("SequentialMatching.loop_detection_num_images", 50))
+            total += num_images * loop_images
+        return total
+
+    def _count_colmap_matches(self, db_path):
+        if not db_path or not os.path.isfile(db_path):
+            return None
+        conn = None
+        try:
+            conn = sqlite3.connect(db_path, timeout=0.2)
+            cursor = conn.cursor()
+            for table in ("matches", "two_view_geometries"):
+                try:
+                    cursor.execute(f"SELECT COUNT(*) FROM {table}")
+                    row = cursor.fetchone()
+                    if row:
+                        return int(row[0])
+                except sqlite3.Error:
+                    continue
+        except sqlite3.Error:
+            return None
+        finally:
+            if conn:
+                conn.close()
+        return None
+
+    def _get_postshot_images_dir(self):
+        if not self.colmap_progress_postshot_output:
+            return None
+        images_dir = os.path.join(self.colmap_progress_postshot_output, "images")
+        if os.path.isdir(images_dir):
+            return images_dir
+        return self.colmap_progress_postshot_output
+
+    def _get_output_image_count(self):
+        images_dir = self._get_postshot_images_dir()
+        if not images_dir or not os.path.isdir(images_dir):
+            return 0
+        snapshot = self._get_images_snapshot(images_dir)
+        return snapshot.get("count", 0) if snapshot else 0
+
+    def _reset_colmap_progress_state(self):
+        self.colmap_progress_step = None
+        self.colmap_progress_current = 0
+        self.colmap_progress_total = 0
+        self.colmap_progress_mode = None
+        self.colmap_step_start_time = None
+        self.colmap_progress_next_poll_time = 0
+        self.colmap_progress_db_path = None
+        self.colmap_progress_postshot_output = None
+        self._stop_colmap_progress_timer()
+        self._update_colmap_progress_display()
+
+    def _begin_colmap_step_progress(self, step_name, config):
+        options = config.get("options", {})
+        matcher_name = config.get("matcher")
+        image_count = int(config.get("image_count") or 0)
+        frame_count = int(config.get("frame_count") or 0)
+
+        self.colmap_progress_step = step_name
+        self.colmap_progress_current = 0
+        self.colmap_progress_total = 0
+        self.colmap_progress_mode = None
+        self.colmap_step_start_time = time.time()
+        self.colmap_progress_next_poll_time = 0
+        self.colmap_progress_db_path = os.path.join(config["rig_folder"], "database.db")
+        self.colmap_progress_postshot_output = config.get("postshot_output")
+
+        if step_name == "feature_extractor":
+            self.colmap_progress_total = image_count
+            self.colmap_progress_mode = "feature_log"
+        elif step_name == "rig_configurator":
+            self.colmap_progress_total = 1
+            self.colmap_progress_mode = "rig"
+        elif step_name == "matcher":
+            self.colmap_progress_total = self._estimate_matcher_total_pairs(matcher_name, options, image_count)
+            self.colmap_progress_mode = "matcher_db"
+            current = self._count_colmap_matches(self.colmap_progress_db_path)
+            if current is not None:
+                self.colmap_progress_current = current
+        elif step_name == "mapper":
+            self.colmap_progress_total = frame_count or image_count
+            self.colmap_progress_mode = "mapper_log"
+        elif step_name == "image_undistorter":
+            self.colmap_progress_total = image_count
+            self.colmap_progress_mode = "undistorter_files"
+            self.colmap_progress_current = self._get_output_image_count()
+
+        if self.colmap_progress_current > self.colmap_progress_total:
+            self.colmap_progress_total = self.colmap_progress_current
+
+        self._update_colmap_progress_display_threadsafe()
+        self._start_colmap_progress_timer_threadsafe()
+
+    def _mark_colmap_step_complete(self, step_name):
+        if step_name != self.colmap_progress_step:
+            return
+        if self.colmap_progress_total > 0:
+            self.colmap_progress_current = max(self.colmap_progress_current, self.colmap_progress_total)
+        else:
+            self.colmap_progress_current = max(self.colmap_progress_current, 1)
+        self._update_colmap_progress_display_threadsafe()
+
+    def _update_colmap_progress_from_log(self, line):
+        step_name = self.colmap_active_step
+        if step_name == "feature_extractor":
+            match = COLMAP_FEATURE_PROGRESS_RE.search(line)
+            if match:
+                current = int(match.group(1))
+                total = int(match.group(2))
+                self.colmap_progress_current = max(self.colmap_progress_current, current)
+                if total > self.colmap_progress_total:
+                    self.colmap_progress_total = total
+                self._update_colmap_progress_display_threadsafe()
+        elif step_name == "mapper":
+            match = COLMAP_MAPPER_PROGRESS_RE.search(line)
+            if match:
+                current = int(match.group(1))
+                self.colmap_progress_current = max(self.colmap_progress_current, current)
+                if self.colmap_progress_total and current > self.colmap_progress_total:
+                    self.colmap_progress_total = current
+                self._update_colmap_progress_display_threadsafe()
+
+    def _update_colmap_progress_display(self):
+        if not self.colmap_progress_step:
+            self.colmap_progress_text_var.set(S.get("colmap_progress_idle"))
+            if hasattr(self, "colmap_progress_bar"):
+                self.colmap_progress_bar["value"] = 0
+            return
+
+        step_label = self._get_colmap_step_label(self.colmap_progress_step)
+        current = max(0, int(self.colmap_progress_current or 0))
+        total = max(0, int(self.colmap_progress_total or 0))
+        elapsed = "00:00:00"
+        if self.colmap_step_start_time:
+            elapsed = str(timedelta(seconds=int(time.time() - self.colmap_step_start_time)))
+        current_display = str(current)
+        total_display = str(total)
+        self.colmap_progress_text_var.set(S.get("colmap_progress_format",
+                                               step=step_label, current=current_display,
+                                               total=total_display, elapsed=elapsed))
+        percent = 0
+        if total > 0:
+            percent = min(100, (current / total) * 100)
+        if hasattr(self, "colmap_progress_bar"):
+            self.colmap_progress_bar["value"] = percent
+
+    def _update_colmap_progress_display_threadsafe(self):
+        self.after(0, self._update_colmap_progress_display)
+
+    def _start_colmap_progress_timer(self):
+        if self.colmap_progress_after_id:
+            try:
+                self.after_cancel(self.colmap_progress_after_id)
+            except tk.TclError:
+                pass
+        self.colmap_progress_after_id = self.after(1000, self._colmap_progress_tick)
+
+    def _start_colmap_progress_timer_threadsafe(self):
+        self.after(0, self._start_colmap_progress_timer)
+
+    def _stop_colmap_progress_timer(self):
+        if self.colmap_progress_after_id:
+            try:
+                self.after_cancel(self.colmap_progress_after_id)
+            except tk.TclError:
+                pass
+            self.colmap_progress_after_id = None
+
+    def _colmap_progress_tick(self):
+        if not self.colmap_running:
+            self._stop_colmap_progress_timer()
+            return
+
+        now = time.time()
+        if self.colmap_progress_mode in ("matcher_db", "undistorter_files"):
+            if now >= self.colmap_progress_next_poll_time:
+                if self.colmap_progress_mode == "matcher_db":
+                    current = self._count_colmap_matches(self.colmap_progress_db_path)
+                    if current is not None and current > self.colmap_progress_current:
+                        self.colmap_progress_current = current
+                        if current > self.colmap_progress_total:
+                            self.colmap_progress_total = current
+                else:
+                    current = self._get_output_image_count()
+                    if current > self.colmap_progress_current:
+                        self.colmap_progress_current = current
+                        if current > self.colmap_progress_total:
+                            self.colmap_progress_total = current
+                self.colmap_progress_next_poll_time = now + 1.0
+
+        self._update_colmap_progress_display()
+        self.colmap_progress_after_id = self.after(1000, self._colmap_progress_tick)
+
+    def _finalize_colmap_progress(self, success):
+        if success and self.colmap_progress_step:
+            if self.colmap_progress_total > 0:
+                self.colmap_progress_current = max(self.colmap_progress_current, self.colmap_progress_total)
+        self._update_colmap_progress_display()
+        self._stop_colmap_progress_timer()
+
     def _get_file_mtime(self, filepath):
         try:
             return int(os.path.getmtime(filepath))
@@ -1809,6 +2078,8 @@ class Insta360ConvertGUI(tk.Tk):
         existing_state = self._load_colmap_pipeline_state(state_path)
         rig_config_mtime = self._get_file_mtime(config["rig_config"])
         images_snapshot = self._get_images_snapshot(config["images_dir"])
+        image_count = images_snapshot.get("count", 0) if images_snapshot else 0
+        frame_count = self._get_frame_count(config["images_dir"])
         options_hash = self._compute_colmap_options_hash(config["preset_key"], config["matcher"], config["options"])
 
         state_data = dict(existing_state) if existing_state else {}
@@ -1889,6 +2160,9 @@ class Insta360ConvertGUI(tk.Tk):
         config["state_path"] = state_path
         config["state_data"] = state_data
         config["start_step"] = start_step
+        config["image_count"] = image_count
+        config["frame_count"] = frame_count
+        self._reset_colmap_progress_state()
         self.colmap_thread = threading.Thread(target=self._run_colmap_pipeline_thread, args=(config,), daemon=True)
         self.colmap_thread.start()
 
@@ -1908,6 +2182,7 @@ class Insta360ConvertGUI(tk.Tk):
                                                   threadsafe=False)
 
     def _run_colmap_pipeline_thread(self, config):
+        success = False
         try:
             rig_folder = config["rig_folder"]
             colmap_exec = config["colmap_exec"]
@@ -1983,9 +2258,11 @@ class Insta360ConvertGUI(tk.Tk):
                 if idx < start_index:
                     continue
                 self.colmap_active_step = step_name
+                self._begin_colmap_step_progress(step_name, config)
                 if not self._run_colmap_command(command):
                     return
                 self.colmap_last_completed_step = step_name
+                self._mark_colmap_step_complete(step_name)
                 self._write_colmap_pipeline_state(state_path, state_data, last_step=step_name, threadsafe=True)
 
             undistorter_index = COLMAP_PIPELINE_STEPS.index("image_undistorter")
@@ -2004,12 +2281,15 @@ class Insta360ConvertGUI(tk.Tk):
                     "--output_type", "COLMAP"
                 ]
                 self.colmap_active_step = "image_undistorter"
+                self._begin_colmap_step_progress("image_undistorter", config)
                 if not self._run_colmap_command(undistorter_cmd):
                     return
                 self.colmap_last_completed_step = "image_undistorter"
+                self._mark_colmap_step_complete("image_undistorter")
                 self._write_colmap_pipeline_state(state_path, state_data, last_step="image_undistorter", threadsafe=True)
 
             self.log_message_ui_threadsafe("log_colmap_pipeline_completed_format", "INFO", is_key=True, path=postshot_output)
+            success = True
         finally:
             self.colmap_running = False
             self.colmap_active_process = None
@@ -2017,6 +2297,7 @@ class Insta360ConvertGUI(tk.Tk):
             self.colmap_pipeline_state_path = None
             self.colmap_pipeline_state_data = None
             self.after(0, self.update_colmap_controls_state)
+            self.after(0, lambda: self._finalize_colmap_progress(success))
 
     def _run_colmap_command(self, command):
         if self.colmap_cancel_event and self.colmap_cancel_event.is_set():
@@ -2051,6 +2332,7 @@ class Insta360ConvertGUI(tk.Tk):
                         lower_line = clean_line.lower()
                         if "unrecognized option" in lower_line or "unknown option" in lower_line:
                             unsupported_option = True
+                        self._update_colmap_progress_from_log(clean_line)
                         self.log_message_ui_threadsafe(f"COLMAP: {clean_line}", "DEBUG")
             self.colmap_active_process.wait()
             if self.colmap_active_process.returncode != 0:
