@@ -38,6 +38,7 @@ Insta360 カメラで撮影した独自の形式 (.insv など)の動画は、�
 *   **Per-Pitch FOV:** Set a custom Field of View for each selected pitch angle.
 *   **Flexible Output:** Export as MP4 (H.265/HEVC) video clips or PNG/JPEG image sequences.
 *   **COLMAP Rig Export:** Output a COLMAP rig layout with images and `rig_config.json` for rig_configurator without manual entry.
+*   **RealityScan Rig Export:** Output RealityScan-ready XMP sidecars with a rig-friendly folder layout.
 *   **CUDA Acceleration:** Supports NVIDIA CUDA for hardware-accelerated decoding and encoding (with compatibility testing for high-resolution inputs).
 *   **Batch Processing:** Process all defined viewpoints in parallel.
 *   **Multilingual UI:** User interface available in English and Japanese, with on-the-fly language switching.
@@ -50,6 +51,7 @@ Insta360 カメラで撮影した独自の形式 (.insv など)の動画は、�
 *   **ピッチごとのFOV設定:** 選択した各ピッチ角に対してカスタムFOVを設定可能。
 *   **柔軟な出力形式:** MP4 (H.265/HEVC) 動画または PNG/JPEG 静止画シーケンスとして出力。
 *   **COLMAP Rig書き出し:** COLMAPのRig機能向けに画像と`rig_config.json`を自動生成。
+*   **RealityScan Rig書き出し:** RealityScan向けのXMPサイドカーとリグ用フォルダ構成を生成。
 *   **CUDAアクセラレーション:** NVIDIA CUDAによるハードウェアアクセラレーションに対応（高解像度入力時の互換性テスト付き）。
 *   **バッチ処理:** 定義された全ての視点を並列処理。
 *   **多言語UI:** 日本語と英語のユーザーインターフェースに対応し、実行中に言語切り替え可能。
@@ -82,6 +84,7 @@ To use this application, you will need the following software and files:
     *   `advanced_yaw_selector.py` (Viewpoint setting UI module)
     *   `ffmpeg_worker.py` (FFmpeg processing worker script)
     *   `colmap_rig_export.py` (COLMAP rig export helper)
+    *   `realityscan_xmp_export.py` (RealityScan XMP export helper)
     *   `colmap_pipeline_options.py` (COLMAP pipeline options helper)
     *   `constants.py` (Configuration values definition file)
     *   `strings.py` (User interface string definitions for internationalization)
@@ -107,6 +110,7 @@ To use this application, you will need the following software and files:
     *   `advanced_yaw_selector.py` (視点設定 UI モジュール)
     *   `ffmpeg_worker.py` (FFmpeg 処理ワーカースクリプト)
     *   `colmap_rig_export.py` (COLMAP Rig書き出しヘルパー)
+    *   `realityscan_xmp_export.py` (RealityScan XMP書き出しヘルパー)
     *   `colmap_pipeline_options.py` (COLMAPパイプライン用オプションヘルパー)
     *   `constants.py` (設定値定義ファイル)
     *   `strings.py` (国際化対応のためのUI文字列定義ファイル)
@@ -219,9 +223,10 @@ Processing will begin with settings close to the defaults. For more detailed con
 *   **Export Mode:**
     *   **Standard:** Uses the existing per-viewpoint folder/file naming.
     *   **COLMAP Rig:** Outputs under `<Output Folder>/colmap_rig/images/rig1/camXX/<session>_frame_00001.png` (or `.jpg`) and writes `<Output Folder>/colmap_rig/rig_config.json`. The `<session>` prefix is auto-generated from the input video name and `_02`, `_03`... are appended if needed. Video output is disabled (PNG/JPEG only).
+    *   **RealityScan Rig:** Outputs under `<Output Folder>/realityscan_rig/images/rig1/camXX/<session>_frame_00001.png` (or `.jpg`) and writes matching `.xmp` sidecar files. The `<session>` prefix is auto-generated from the input video name and `_02`, `_03`... are appended if needed. Video output is disabled (PNG/JPEG only).
 *   **Output Format Radio Buttons and Options:**
     *   *【Recommended】 For photogrammetry software (e.g., Reality Capture), selecting "PNG Sequence" is recommended.*
-    *   *In COLMAP Rig mode, video output is disabled. Use PNG/JPEG sequences.*
+    *   *In COLMAP Rig / RealityScan Rig mode, video output is disabled. Use PNG/JPEG sequences.*
         *   **PNG Sequence:**
             *   Outputs still image files in PNG format (lossless compression, high quality).
         *   **Extraction Interval (sec):** Specify how often to extract a still image (e.g., `0.5` for 2 frames per second, `1.00` for 1 frame per second). Input in 0.01 second increments. Default is `1.00` sec.
@@ -350,9 +355,10 @@ The application window includes a menu bar at the top.
 *   **書き出しモード:**
     *   **標準:** 従来の視点ごとのフォルダ/ファイル構成で出力。
     *   **COLMAP Rig:** `<出力フォルダ>/colmap_rig/images/rig1/camXX/<session>_frame_00001.png` (または `.jpg`) と `<出力フォルダ>/colmap_rig/rig_config.json` を書き出し。`<session>` は入力動画名から自動生成され、必要に応じて `_02`, `_03`… が付与されます。動画出力は無効（PNG/JPEGのみ）。
+    *   **RealityScan Rig:** `<出力フォルダ>/realityscan_rig/images/rig1/camXX/<session>_frame_00001.png` (または `.jpg`) と同名の `.xmp` を書き出し。`<session>` は入力動画名から自動生成され、必要に応じて `_02`, `_03`… が付与されます。動画出力は無効（PNG/JPEGのみ）。
 *   **出力形式ラジオボタンとオプション:**
 *   *【推奨】フォトグラメトリソフト(Reality Capture等)で使用する場合、「PNGシーケンス」を推奨。*
-*   *COLMAP Rigモードでは動画出力は無効です。PNG/JPEGのみ選択してください。*
+*   *COLMAP Rig / RealityScan Rigモードでは動画出力は無効です。PNG/JPEGのみ選択してください。*
 *   **PNG シーケンス(静止画シーケンス (PNG)):**
     *   PNG形式の静止画ファイルを出力（可逆圧縮で高画質）。
         *   **抽出間隔(秒):** 何秒ごとに1枚静止画を切り出すか指定(例: `0.5`→毎秒2枚, `1.00`→毎秒1枚)。0.01秒単位。デフォルト`1.00`秒。
@@ -459,6 +465,21 @@ Folders (for image sequences) or files (for videos) with names like the followin
     *   Images are saved as `colmap_rig/images/rig1/camXX/<session>_frame_00001.png` (or `.jpg`) with the same frame name across cameras.
     *   The `<session>` prefix is auto-generated from the input video name and `_02`, `_03`... are appended if needed.
     *   `colmap_rig/rig_config.json` is generated for rig_configurator.
+*   **RealityScan Rig Mode (PNG/JPEG only):**
+    *   Images are saved as `realityscan_rig/images/rig1/camXX/<session>_frame_00001.png` (or `.jpg`) with the same frame name across cameras.
+    *   Matching `.xmp` sidecar files are written next to each image.
+    *   The `<session>` prefix is auto-generated from the input video name and `_02`, `_03`... are appended if needed.
+    *   `xcr:FocalLength35mm` in the XMP is derived from each viewpoint's FOV assuming a 35mm-format horizontal width of 36mm: `f = (36/2) / tan(FOV/2)` (FOV in degrees). If no per-viewpoint FOV is set, the default is 100°.
+
+**5.1. RealityScan XMP Settings (Guidelines)**
+
+*   **Rig ID:** Use the same GUID across sessions if the camera and viewpoint set (pitch/yaw/FOV) are identical. Otherwise keep it per-session.
+*   **Auto Rig ID:** In Auto mode, the app reuses the Rig GUID stored in the output folder (`realityscan_rig/rig_id.txt`). Use a different output folder for different locations.
+*   **Rig Instance:** Per frame. Each 360 frame (all extracted viewpoints at the same time) shares one RigInstance.
+*   **Pose Prior:** Prefer **Draft** (PosePrior=initial) to allow alignment across sessions. Avoid Locked if you need the camera trajectory to be solved.
+*   **Calibration Prior:** **Locked** is recommended because the focal length is derived from a known FOV.
+*   **Coordinates:** Prefer **Relative** so session-to-session alignment is not constrained by absolute coordinates.
+*   **Responsibility:** When merging sessions, keep the same viewpoint set (number of viewpoints and directions) on the user side.
 
 **[日本語] 5. 出力結果**
 
@@ -476,6 +497,21 @@ Folders (for image sequences) or files (for videos) with names like the followin
     *   `colmap_rig/images/rig1/camXX/<session>_frame_00001.png` (または `.jpg`) に共通フレーム名で保存されます。
     *   `<session>` は入力動画名から自動生成され、必要に応じて `_02`, `_03`… が付与されます。
     *   `colmap_rig/rig_config.json` が生成されます。
+*   **RealityScan Rigモード(PNG/JPEGのみ):**
+    *   `realityscan_rig/images/rig1/camXX/<session>_frame_00001.png` (または `.jpg`) に共通フレーム名で保存されます。
+    *   画像と同名の `.xmp` サイドカーが生成されます。
+    *   `<session>` は入力動画名から自動生成され、必要に応じて `_02`, `_03`… が付与されます。
+    *   XMPの `xcr:FocalLength35mm` は各視点のFOVから、35mm判の横幅36mmを前提とした水平FOVとして算出します: `f = (36/2) / tan(FOV/2)`（FOVは度）。視点ごとのFOV未指定時はデフォルト100°です。
+
+**5.1. RealityScan XMP設定の考え方（ガイドライン）**
+
+*   **Rig ID:** カメラと視点セット（ピッチ/ヨー/FOV）が同一ならセッションをまたいで同一GUIDを使用。条件が違う場合はセッションごとに分けます。
+*   **Auto Rig ID:** Autoでは出力フォルダ内のRig GUID（`realityscan_rig/rig_id.txt`）を再利用します。異なるロケーションは出力フォルダを分けてください。
+*   **Rig Instance:** フレームごとに固有。同時刻に切り出した視点群を同じRigInstanceにします。
+*   **Pose Prior:** 複数セッション統合を行う場合は **Draft（PosePrior=initial）推奨**。軌跡を解かせたい場合はLockedを避けます。
+*   **Calibration Prior:** 焦点距離はFOVから算出しているため **Locked推奨**。
+*   **Coordinates:** セッション間の結合を妨げないよう **Relative推奨**。
+*   **注意:** 複数セッションを統合する場合、視点数・方向を揃えるのはユーザー責任です。
 
 ---
 

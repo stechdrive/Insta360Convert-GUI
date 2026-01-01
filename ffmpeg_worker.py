@@ -11,6 +11,12 @@ from colmap_rig_export import (
     build_frame_filename_pattern,
     camera_name_for_index
 )
+from realityscan_xmp_export import (
+    DEFAULT_RIG_NAME as REALITYSCAN_DEFAULT_RIG_NAME,
+    build_realityscan_output_dir,
+    build_frame_filename_pattern as build_realityscan_frame_filename_pattern,
+    camera_name_for_index as realityscan_camera_name_for_index
+)
 # strings モジュールはインポートしない (マルチプロセスでの共有が複雑なため)
 
 # Constants for FFmpeg error detection (can be expanded)
@@ -80,6 +86,8 @@ def ffmpeg_worker_process(viewpoint_idx, viewpoint_data, config, log_queue_mp, p
         output_mode = config.get("output_mode", "standard")
         colmap_rig_name = config.get("colmap_rig_name", DEFAULT_RIG_NAME)
         colmap_session_prefix = config.get("colmap_session_prefix", "")
+        realityscan_rig_name = config.get("realityscan_rig_name", REALITYSCAN_DEFAULT_RIG_NAME)
+        realityscan_session_prefix = config.get("realityscan_session_prefix", "")
         frame_interval_val = config.get("frame_interval", 0) # Default to 0 if not present
         video_preset = config["video_preset"]
         video_cq = config["video_cq"]
@@ -99,12 +107,17 @@ def ffmpeg_worker_process(viewpoint_idx, viewpoint_data, config, log_queue_mp, p
              ffmpeg_yaw += 360
 
 
-        if output_mode == "colmap_rig" and output_format == "video":
-            log_queue_mp.put({"type": "log", "level": "ERROR",
-                              "message": "COLMAP Rig mode does not support video output."})
+        if output_mode in ("colmap_rig", "realityscan_rig") and output_format == "video":
+            if output_mode == "realityscan_rig":
+                log_message = "RealityScan Rig mode does not support video output."
+                error_message = "Invalid output format for RealityScan Rig."
+            else:
+                log_message = "COLMAP Rig mode does not support video output."
+                error_message = "Invalid output format for COLMAP Rig."
+            log_queue_mp.put({"type": "log", "level": "ERROR", "message": log_message})
             progress_queue_mp.put({
                 "type": "task_result", "viewpoint_index": viewpoint_idx, "success": False,
-                "error_message": "Invalid output format for COLMAP Rig.",
+                "error_message": error_message,
                 "duration": time.time() - process_start_time
             })
             return
@@ -153,7 +166,7 @@ def ffmpeg_worker_process(viewpoint_idx, viewpoint_data, config, log_queue_mp, p
         yaw_folder_str = f"{int(round(yaw)):03d}".replace("-", "m") # Also handle yaw for consistency if it can be negative
 
         if output_format in ["png", "jpeg"]:
-            if output_mode == "colmap_rig":
+            if output_mode in ("colmap_rig", "realityscan_rig"):
                 camera_name = viewpoint_data.get("camera_name")
                 if not camera_name:
                     camera_index = viewpoint_data.get("camera_index")
@@ -166,9 +179,15 @@ def ffmpeg_worker_process(viewpoint_idx, viewpoint_data, config, log_queue_mp, p
                             "duration": time.time() - process_start_time
                         })
                         return
-                    camera_name = camera_name_for_index(int(camera_index), int(camera_index))
+                    if output_mode == "colmap_rig":
+                        camera_name = camera_name_for_index(int(camera_index), int(camera_index))
+                    else:
+                        camera_name = realityscan_camera_name_for_index(int(camera_index), int(camera_index))
 
-                output_dir_for_viewpoint = build_colmap_output_dir(output_folder, colmap_rig_name, camera_name)
+                if output_mode == "colmap_rig":
+                    output_dir_for_viewpoint = build_colmap_output_dir(output_folder, colmap_rig_name, camera_name)
+                else:
+                    output_dir_for_viewpoint = build_realityscan_output_dir(output_folder, realityscan_rig_name, camera_name)
                 try:
                     os.makedirs(output_dir_for_viewpoint, exist_ok=True)
                 except OSError as e:
@@ -182,10 +201,16 @@ def ffmpeg_worker_process(viewpoint_idx, viewpoint_data, config, log_queue_mp, p
                     return
 
                 file_ext = "jpg" if output_format == "jpeg" else "png"
-                output_filename_pattern = os.path.join(
-                    output_dir_for_viewpoint,
-                    build_frame_filename_pattern(file_ext, session_prefix=colmap_session_prefix)
-                )
+                if output_mode == "colmap_rig":
+                    output_filename_pattern = os.path.join(
+                        output_dir_for_viewpoint,
+                        build_frame_filename_pattern(file_ext, session_prefix=colmap_session_prefix)
+                    )
+                else:
+                    output_filename_pattern = os.path.join(
+                        output_dir_for_viewpoint,
+                        build_realityscan_frame_filename_pattern(file_ext, session_prefix=realityscan_session_prefix)
+                    )
             else:
                 img_type_suffix = '_jpeg' if output_format == 'jpeg' else '_png' # More explicit suffix
                 view_folder_name = f"{base_input_name}_p{pitch_folder_str}_y{yaw_folder_str}{img_type_suffix}"
