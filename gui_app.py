@@ -46,9 +46,11 @@ from realityscan_xmp_export import (
     DEFAULT_RIG_NAME as REALITYSCAN_DEFAULT_RIG_NAME,
     DEFAULT_FRAME_PREFIX as REALITYSCAN_FRAME_PREFIX,
     DEFAULT_DISTORTION_COEFFICIENTS as REALITYSCAN_DEFAULT_DISTORTION_COEFFICIENTS,
+    get_or_create_realityscan_rig_id,
     make_unique_session_prefix as make_unique_realityscan_session_prefix,
     prepare_viewpoints_for_realityscan,
     realityscan_images_root,
+    write_realityscan_rig_id,
     build_xmp_payload,
     compute_focal_length_35mm,
     generate_guid,
@@ -2989,8 +2991,12 @@ class Insta360ConvertGUI(tk.Tk):
             try:
                 if self._get_realityscan_rig_id_mode_key() == "manual":
                     realityscan_rig_id = normalize_guid(self.realityscan_rig_id_var.get())
+                    write_realityscan_rig_id(self.output_folder_var.get(), realityscan_rig_id)
                 else:
-                    realityscan_rig_id = generate_guid()
+                    realityscan_rig_id = get_or_create_realityscan_rig_id(
+                        self.output_folder_var.get(),
+                        REALITYSCAN_DEFAULT_RIG_NAME
+                    )
             except Exception as e: # pylint: disable=broad-except
                 self.log_message_ui("log_realityscan_rig_id_invalid_format", "ERROR", is_key=True, error=str(e))
                 return

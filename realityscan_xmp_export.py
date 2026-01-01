@@ -12,6 +12,8 @@ DEFAULT_RIG_NAME = "rig1"
 DEFAULT_CAMERA_PREFIX = "cam"
 DEFAULT_FRAME_PREFIX = "frame"
 DEFAULT_FRAME_DIGITS = 5
+REALITYSCAN_RIG_ID_FILENAME = "rig_id.txt"
+_REALITYSCAN_RIG_ID_REGEX = re.compile(r'xcr:Rig="([^"]+)"')
 
 DEFAULT_DISTORTION_MODEL = "brown3"
 DEFAULT_DISTORTION_COEFFICIENTS = [0, 0, 0, 0, 0, 0]
@@ -41,6 +43,79 @@ def realityscan_rig_root(output_folder):
 def realityscan_images_root(output_folder):
     return os.path.join(realityscan_rig_root(output_folder), REALITYSCAN_IMAGES_DIRNAME)
 
+
+def realityscan_rig_id_path(output_folder):
+    return os.path.join(realityscan_rig_root(output_folder), REALITYSCAN_RIG_ID_FILENAME)
+
+
+def read_realityscan_rig_id(output_folder):
+    path = realityscan_rig_id_path(output_folder)
+    if not os.path.isfile(path):
+        return None
+    try:
+        with open(path, "r", encoding="utf-8") as handle:
+            raw = handle.read().strip()
+    except OSError:
+        return None
+    if not raw:
+        return None
+    try:
+        return normalize_guid(raw)
+    except ValueError:
+        return None
+
+
+def write_realityscan_rig_id(output_folder, rig_id):
+    if not rig_id:
+        return
+    path = realityscan_rig_id_path(output_folder)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as handle:
+        handle.write(f"{rig_id}\n")
+
+
+def _extract_rig_id_from_xmp(xmp_path):
+    try:
+        with open(xmp_path, "r", encoding="utf-8") as handle:
+            snippet = handle.read(4096)
+    except OSError:
+        return None
+    match = _REALITYSCAN_RIG_ID_REGEX.search(snippet)
+    if not match:
+        return None
+    try:
+        return normalize_guid(match.group(1))
+    except ValueError:
+        return None
+
+
+def find_existing_realityscan_rig_id(output_folder, rig_name=DEFAULT_RIG_NAME):
+    rig_root = os.path.join(realityscan_images_root(output_folder), rig_name)
+    if not os.path.isdir(rig_root):
+        return None
+    for cam_name in sorted(os.listdir(rig_root)):
+        cam_path = os.path.join(rig_root, cam_name)
+        if not os.path.isdir(cam_path):
+            continue
+        for entry in sorted(os.listdir(cam_path)):
+            if entry.lower().endswith(".xmp"):
+                rig_id = _extract_rig_id_from_xmp(os.path.join(cam_path, entry))
+                if rig_id:
+                    return rig_id
+    return None
+
+
+def get_or_create_realityscan_rig_id(output_folder, rig_name=DEFAULT_RIG_NAME):
+    rig_id = read_realityscan_rig_id(output_folder)
+    if rig_id:
+        return rig_id
+    rig_id = find_existing_realityscan_rig_id(output_folder, rig_name)
+    if rig_id:
+        write_realityscan_rig_id(output_folder, rig_id)
+        return rig_id
+    rig_id = generate_guid()
+    write_realityscan_rig_id(output_folder, rig_id)
+    return rig_id
 
 def _collect_existing_session_prefixes(output_folder, rig_name):
     rig_root = os.path.join(realityscan_images_root(output_folder), rig_name)

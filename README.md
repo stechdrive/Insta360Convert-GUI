@@ -474,6 +474,7 @@ Folders (for image sequences) or files (for videos) with names like the followin
 **5.1. RealityScan XMP Settings (Guidelines)**
 
 *   **Rig ID:** Use the same GUID across sessions if the camera and viewpoint set (pitch/yaw/FOV) are identical. Otherwise keep it per-session.
+*   **Auto Rig ID:** In Auto mode, the app reuses the Rig GUID stored in the output folder (`realityscan_rig/rig_id.txt`). Use a different output folder for different locations.
 *   **Rig Instance:** Per frame. Each 360 frame (all extracted viewpoints at the same time) shares one RigInstance.
 *   **Pose Prior:** Prefer **Draft** (PosePrior=initial) to allow alignment across sessions. Avoid Locked if you need the camera trajectory to be solved.
 *   **Calibration Prior:** **Locked** is recommended because the focal length is derived from a known FOV.
@@ -505,6 +506,7 @@ Folders (for image sequences) or files (for videos) with names like the followin
 **5.1. RealityScan XMP設定の考え方（ガイドライン）**
 
 *   **Rig ID:** カメラと視点セット（ピッチ/ヨー/FOV）が同一ならセッションをまたいで同一GUIDを使用。条件が違う場合はセッションごとに分けます。
+*   **Auto Rig ID:** Autoでは出力フォルダ内のRig GUID（`realityscan_rig/rig_id.txt`）を再利用します。異なるロケーションは出力フォルダを分けてください。
 *   **Rig Instance:** フレームごとに固有。同時刻に切り出した視点群を同じRigInstanceにします。
 *   **Pose Prior:** 複数セッション統合を行う場合は **Draft（PosePrior=initial）推奨**。軌跡を解かせたい場合はLockedを避けます。
 *   **Calibration Prior:** 焦点距離はFOVから算出しているため **Locked推奨**。
