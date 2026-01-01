@@ -469,6 +469,7 @@ Folders (for image sequences) or files (for videos) with names like the followin
     *   Images are saved as `realityscan_rig/images/rig1/camXX/<session>_frame_00001.png` (or `.jpg`) with the same frame name across cameras.
     *   Matching `.xmp` sidecar files are written next to each image.
     *   The `<session>` prefix is auto-generated from the input video name and `_02`, `_03`... are appended if needed.
+    *   `xcr:FocalLength35mm` in the XMP is derived from each viewpoint's FOV assuming a 35mm-format horizontal width of 36mm: `f = (36/2) / tan(FOV/2)` (FOV in degrees). If no per-viewpoint FOV is set, the default is 100°.
 
 **[日本語] 5. 出力結果**
 
@@ -490,6 +491,7 @@ Folders (for image sequences) or files (for videos) with names like the followin
     *   `realityscan_rig/images/rig1/camXX/<session>_frame_00001.png` (または `.jpg`) に共通フレーム名で保存されます。
     *   画像と同名の `.xmp` サイドカーが生成されます。
     *   `<session>` は入力動画名から自動生成され、必要に応じて `_02`, `_03`… が付与されます。
+    *   XMPの `xcr:FocalLength35mm` は各視点のFOVから、35mm判の横幅36mmを前提とした水平FOVとして算出します: `f = (36/2) / tan(FOV/2)`（FOVは度）。視点ごとのFOV未指定時はデフォルト100°です。
 
 ---
 
