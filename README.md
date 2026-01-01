@@ -471,6 +471,15 @@ Folders (for image sequences) or files (for videos) with names like the followin
     *   The `<session>` prefix is auto-generated from the input video name and `_02`, `_03`... are appended if needed.
     *   `xcr:FocalLength35mm` in the XMP is derived from each viewpoint's FOV assuming a 35mm-format horizontal width of 36mm: `f = (36/2) / tan(FOV/2)` (FOV in degrees). If no per-viewpoint FOV is set, the default is 100°.
 
+**5.1. RealityScan XMP Settings (Guidelines)**
+
+*   **Rig ID:** Use the same GUID across sessions if the camera and viewpoint set (pitch/yaw/FOV) are identical. Otherwise keep it per-session.
+*   **Rig Instance:** Per frame. Each 360 frame (all extracted viewpoints at the same time) shares one RigInstance.
+*   **Pose Prior:** Prefer **Draft** (PosePrior=initial) to allow alignment across sessions. Avoid Locked if you need the camera trajectory to be solved.
+*   **Calibration Prior:** **Locked** is recommended because the focal length is derived from a known FOV.
+*   **Coordinates:** Prefer **Relative** so session-to-session alignment is not constrained by absolute coordinates.
+*   **Responsibility:** When merging sessions, keep the same viewpoint set (number of viewpoints and directions) on the user side.
+
 **[日本語] 5. 出力結果**
 
 処理が正常に完了すると、「変換開始」ボタンが再び押せるようになります。「アプリケーションログ」タブには「全ての変換処理が完了しました。」というメッセージが表示され、視点数進捗も「(全視点数)/(全視点数) 視点 (変換完了)」となります。
@@ -492,6 +501,15 @@ Folders (for image sequences) or files (for videos) with names like the followin
     *   画像と同名の `.xmp` サイドカーが生成されます。
     *   `<session>` は入力動画名から自動生成され、必要に応じて `_02`, `_03`… が付与されます。
     *   XMPの `xcr:FocalLength35mm` は各視点のFOVから、35mm判の横幅36mmを前提とした水平FOVとして算出します: `f = (36/2) / tan(FOV/2)`（FOVは度）。視点ごとのFOV未指定時はデフォルト100°です。
+
+**5.1. RealityScan XMP設定の考え方（ガイドライン）**
+
+*   **Rig ID:** カメラと視点セット（ピッチ/ヨー/FOV）が同一ならセッションをまたいで同一GUIDを使用。条件が違う場合はセッションごとに分けます。
+*   **Rig Instance:** フレームごとに固有。同時刻に切り出した視点群を同じRigInstanceにします。
+*   **Pose Prior:** 複数セッション統合を行う場合は **Draft（PosePrior=initial）推奨**。軌跡を解かせたい場合はLockedを避けます。
+*   **Calibration Prior:** 焦点距離はFOVから算出しているため **Locked推奨**。
+*   **Coordinates:** セッション間の結合を妨げないよう **Relative推奨**。
+*   **注意:** 複数セッションを統合する場合、視点数・方向を揃えるのはユーザー責任です。
 
 ---
 
