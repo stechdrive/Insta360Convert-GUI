@@ -281,37 +281,47 @@ def build_xmp_payload(
 ):
     rotation_str = format_matrix(rotation_matrix)
     position_str = format_vector(position)
-    distortion_str = " ".join(_format_float(value) for value in distortion_coefficients)
-    focal_str = _format_float(focal_length_35mm)
     aspect_ratio_str = _format_float(aspect_ratio)
     skew_str = _format_float(skew)
     pp_u_str = _format_float(principal_point_u)
     pp_v_str = _format_float(principal_point_v)
 
+    attrs = [f'xcr:Version="{version}"']
+    if pose_prior:
+        attrs.append(f'xcr:PosePrior="{pose_prior}"')
+    attrs.append(f'xcr:Rotation="{rotation_str}"')
+    if coordinates:
+        attrs.append(f'xcr:Coordinates="{coordinates}"')
+    if distortion_model:
+        attrs.append(f'xcr:DistortionModel="{distortion_model}"')
+    if distortion_coefficients is not None:
+        distortion_str = " ".join(_format_float(value) for value in distortion_coefficients)
+        attrs.append(f'xcr:DistortionCoeficients="{distortion_str}"')
+    if focal_length_35mm is not None:
+        focal_str = _format_float(focal_length_35mm)
+        attrs.append(f'xcr:FocalLength35mm="{focal_str}"')
+    attrs.append(f'xcr:Skew="{skew_str}"')
+    attrs.append(f'xcr:AspectRatio="{aspect_ratio_str}"')
+    attrs.append(f'xcr:PrincipalPointU="{pp_u_str}"')
+    attrs.append(f'xcr:PrincipalPointV="{pp_v_str}"')
+    if calibration_prior:
+        attrs.append(f'xcr:CalibrationPrior="{calibration_prior}"')
+    if calibration_group is not None:
+        attrs.append(f'xcr:CalibrationGroup="{calibration_group}"')
+    if distortion_group is not None:
+        attrs.append(f'xcr:DistortionGroup="{distortion_group}"')
+    attrs.append(f'xcr:Rig="{rig_id}"')
+    attrs.append(f'xcr:RigInstance="{rig_instance_id}"')
+    attrs.append(f'xcr:RigPoseIndex="{rig_pose_index}"')
+    attrs.append(f'xcr:InTexturing="{int(bool(in_texturing))}"')
+    attrs.append(f'xcr:InMeshing="{int(bool(in_meshing))}"')
+    attrs.append(f'xcr:InColoring="{int(bool(in_coloring))}"')
+    attr_str = " ".join(attrs)
+
     return (
         '<x:xmpmeta xmlns:x="adobe:ns:meta/">\n'
         '  <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">\n'
-        f'    <rdf:Description xmlns:xcr="http://www.capturingreality.com/ns/xcr/1.1#" '
-        f'xcr:Version="{version}" '
-        f'xcr:PosePrior="{pose_prior}" '
-        f'xcr:Rotation="{rotation_str}" '
-        f'xcr:Coordinates="{coordinates}" '
-        f'xcr:DistortionModel="{distortion_model}" '
-        f'xcr:DistortionCoeficients="{distortion_str}" '
-        f'xcr:FocalLength35mm="{focal_str}" '
-        f'xcr:Skew="{skew_str}" '
-        f'xcr:AspectRatio="{aspect_ratio_str}" '
-        f'xcr:PrincipalPointU="{pp_u_str}" '
-        f'xcr:PrincipalPointV="{pp_v_str}" '
-        f'xcr:CalibrationPrior="{calibration_prior}" '
-        f'xcr:CalibrationGroup="{calibration_group}" '
-        f'xcr:DistortionGroup="{distortion_group}" '
-        f'xcr:Rig="{rig_id}" '
-        f'xcr:RigInstance="{rig_instance_id}" '
-        f'xcr:RigPoseIndex="{rig_pose_index}" '
-        f'xcr:InTexturing="{int(bool(in_texturing))}" '
-        f'xcr:InMeshing="{int(bool(in_meshing))}" '
-        f'xcr:InColoring="{int(bool(in_coloring))}">\n'
+        f'    <rdf:Description xmlns:xcr="http://www.capturingreality.com/ns/xcr/1.1#" {attr_str}>\n'
         f'      <xcr:Position>{position_str}</xcr:Position>\n'
         '    </rdf:Description>\n'
         '  </rdf:RDF>\n'

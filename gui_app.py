@@ -139,6 +139,8 @@ class Insta360ConvertGUI(tk.Tk):
         default_colmap_exec = "colmap.exe" if os.name == 'nt' else "colmap"
         self.colmap_exec_path_var = tk.StringVar(value=default_colmap_exec)
         self.colmap_matcher_options = ["sequential", "exhaustive", "vocab_tree"]
+        self.realityscan_preset_var = tk.StringVar()
+        self.realityscan_focal_length_var = tk.BooleanVar(value=True)
         self.realityscan_xmp_mode_var = tk.StringVar()
         self.realityscan_rig_id_mode_var = tk.StringVar()
         self.realityscan_rig_id_var = tk.StringVar()
@@ -147,6 +149,9 @@ class Insta360ConvertGUI(tk.Tk):
         self.realityscan_calibration_group_var = tk.StringVar()
         self.realityscan_distortion_model_var = tk.StringVar()
         self.realityscan_coordinates_var = tk.StringVar()
+        self.realityscan_preset_options_map = {}
+        self.realityscan_preset_key_by_display = {}
+        self.realityscan_preset_display_by_key = {}
         self.realityscan_xmp_mode_options_map = {}
         self.realityscan_rig_id_mode_options_map = {}
         self.realityscan_rig_instance_mode_options_map = {}
@@ -154,6 +159,7 @@ class Insta360ConvertGUI(tk.Tk):
         self.realityscan_calibration_group_options_map = {}
         self.realityscan_distortion_model_options_map = {}
         self.realityscan_coordinates_options_map = {}
+        self._realityscan_preset_update_in_progress = False
 
         self.ffmpeg_path = "ffmpeg"
         self.ffprobe_path = "ffprobe"
@@ -220,6 +226,12 @@ class Insta360ConvertGUI(tk.Tk):
 
         self.create_widgets()
         self.realityscan_rig_id_mode_var.trace_add("write", self._on_realityscan_rig_id_mode_changed)
+        self.realityscan_xmp_mode_var.trace_add("write", self._on_realityscan_option_changed)
+        self.realityscan_coordinates_var.trace_add("write", self._on_realityscan_option_changed)
+        self.realityscan_calibration_prior_var.trace_add("write", self._on_realityscan_option_changed)
+        self.realityscan_calibration_group_var.trace_add("write", self._on_realityscan_option_changed)
+        self.realityscan_distortion_model_var.trace_add("write", self._on_realityscan_option_changed)
+        self.realityscan_focal_length_var.trace_add("write", self._on_realityscan_option_changed)
         self.update_ui_texts_for_language_switch()
 
         self.update_resolution_options()
@@ -584,80 +596,98 @@ class Insta360ConvertGUI(tk.Tk):
         self.realityscan_xmp_frame = ttk.LabelFrame(self.output_settings_body, text="", padding=(5, 5))
         self.realityscan_xmp_frame.pack(fill=tk.X, pady=(2, 5))
 
+        self.realityscan_preset_label = ttk.Label(self.realityscan_xmp_frame, text="")
+        self.realityscan_preset_label.grid(row=0, column=0, padx=5, pady=2, sticky=tk.W)
+        self.realityscan_preset_combo = ttk.Combobox(
+            self.realityscan_xmp_frame,
+            textvariable=self.realityscan_preset_var,
+            width=22,
+            state="readonly"
+        )
+        self.realityscan_preset_combo.grid(row=0, column=1, padx=(0, 10), pady=2, sticky=tk.W)
+        self.realityscan_preset_combo.bind("<<ComboboxSelected>>", self._on_realityscan_preset_changed)
+
         self.realityscan_xmp_mode_label = ttk.Label(self.realityscan_xmp_frame, text="")
-        self.realityscan_xmp_mode_label.grid(row=0, column=0, padx=5, pady=2, sticky=tk.W)
+        self.realityscan_xmp_mode_label.grid(row=1, column=0, padx=5, pady=2, sticky=tk.W)
         self.realityscan_xmp_mode_combo = ttk.Combobox(
             self.realityscan_xmp_frame,
             textvariable=self.realityscan_xmp_mode_var,
             width=16,
             state="readonly"
         )
-        self.realityscan_xmp_mode_combo.grid(row=0, column=1, padx=(0, 10), pady=2, sticky=tk.W)
+        self.realityscan_xmp_mode_combo.grid(row=1, column=1, padx=(0, 10), pady=2, sticky=tk.W)
 
         self.realityscan_coordinates_label = ttk.Label(self.realityscan_xmp_frame, text="")
-        self.realityscan_coordinates_label.grid(row=0, column=2, padx=5, pady=2, sticky=tk.W)
+        self.realityscan_coordinates_label.grid(row=1, column=2, padx=5, pady=2, sticky=tk.W)
         self.realityscan_coordinates_combo = ttk.Combobox(
             self.realityscan_xmp_frame,
             textvariable=self.realityscan_coordinates_var,
             width=16,
             state="readonly"
         )
-        self.realityscan_coordinates_combo.grid(row=0, column=3, padx=(0, 5), pady=2, sticky=tk.W)
+        self.realityscan_coordinates_combo.grid(row=1, column=3, padx=(0, 5), pady=2, sticky=tk.W)
 
         self.realityscan_rig_id_mode_label = ttk.Label(self.realityscan_xmp_frame, text="")
-        self.realityscan_rig_id_mode_label.grid(row=1, column=0, padx=5, pady=2, sticky=tk.W)
+        self.realityscan_rig_id_mode_label.grid(row=2, column=0, padx=5, pady=2, sticky=tk.W)
         self.realityscan_rig_id_mode_combo = ttk.Combobox(
             self.realityscan_xmp_frame,
             textvariable=self.realityscan_rig_id_mode_var,
             width=16,
             state="readonly"
         )
-        self.realityscan_rig_id_mode_combo.grid(row=1, column=1, padx=(0, 10), pady=2, sticky=tk.W)
+        self.realityscan_rig_id_mode_combo.grid(row=2, column=1, padx=(0, 10), pady=2, sticky=tk.W)
 
         self.realityscan_rig_instance_label = ttk.Label(self.realityscan_xmp_frame, text="")
-        self.realityscan_rig_instance_label.grid(row=1, column=2, padx=5, pady=2, sticky=tk.W)
+        self.realityscan_rig_instance_label.grid(row=2, column=2, padx=5, pady=2, sticky=tk.W)
         self.realityscan_rig_instance_combo = ttk.Combobox(
             self.realityscan_xmp_frame,
             textvariable=self.realityscan_rig_instance_mode_var,
             width=16,
             state="readonly"
         )
-        self.realityscan_rig_instance_combo.grid(row=1, column=3, padx=(0, 5), pady=2, sticky=tk.W)
+        self.realityscan_rig_instance_combo.grid(row=2, column=3, padx=(0, 5), pady=2, sticky=tk.W)
 
         self.realityscan_rig_id_label = ttk.Label(self.realityscan_xmp_frame, text="")
-        self.realityscan_rig_id_label.grid(row=2, column=0, padx=5, pady=2, sticky=tk.W)
+        self.realityscan_rig_id_label.grid(row=3, column=0, padx=5, pady=2, sticky=tk.W)
         self.realityscan_rig_id_entry = ttk.Entry(self.realityscan_xmp_frame, textvariable=self.realityscan_rig_id_var, width=48)
-        self.realityscan_rig_id_entry.grid(row=2, column=1, columnspan=3, padx=(0, 5), pady=2, sticky=tk.EW)
+        self.realityscan_rig_id_entry.grid(row=3, column=1, columnspan=3, padx=(0, 5), pady=2, sticky=tk.EW)
 
         self.realityscan_calibration_prior_label = ttk.Label(self.realityscan_xmp_frame, text="")
-        self.realityscan_calibration_prior_label.grid(row=3, column=0, padx=5, pady=2, sticky=tk.W)
+        self.realityscan_calibration_prior_label.grid(row=4, column=0, padx=5, pady=2, sticky=tk.W)
         self.realityscan_calibration_prior_combo = ttk.Combobox(
             self.realityscan_xmp_frame,
             textvariable=self.realityscan_calibration_prior_var,
             width=16,
             state="readonly"
         )
-        self.realityscan_calibration_prior_combo.grid(row=3, column=1, padx=(0, 10), pady=2, sticky=tk.W)
+        self.realityscan_calibration_prior_combo.grid(row=4, column=1, padx=(0, 10), pady=2, sticky=tk.W)
 
         self.realityscan_calibration_group_label = ttk.Label(self.realityscan_xmp_frame, text="")
-        self.realityscan_calibration_group_label.grid(row=3, column=2, padx=5, pady=2, sticky=tk.W)
+        self.realityscan_calibration_group_label.grid(row=4, column=2, padx=5, pady=2, sticky=tk.W)
         self.realityscan_calibration_group_combo = ttk.Combobox(
             self.realityscan_xmp_frame,
             textvariable=self.realityscan_calibration_group_var,
             width=16,
             state="readonly"
         )
-        self.realityscan_calibration_group_combo.grid(row=3, column=3, padx=(0, 5), pady=2, sticky=tk.W)
+        self.realityscan_calibration_group_combo.grid(row=4, column=3, padx=(0, 5), pady=2, sticky=tk.W)
 
         self.realityscan_distortion_model_label = ttk.Label(self.realityscan_xmp_frame, text="")
-        self.realityscan_distortion_model_label.grid(row=4, column=0, padx=5, pady=2, sticky=tk.W)
+        self.realityscan_distortion_model_label.grid(row=5, column=0, padx=5, pady=2, sticky=tk.W)
         self.realityscan_distortion_model_combo = ttk.Combobox(
             self.realityscan_xmp_frame,
             textvariable=self.realityscan_distortion_model_var,
             width=16,
             state="readonly"
         )
-        self.realityscan_distortion_model_combo.grid(row=4, column=1, padx=(0, 10), pady=2, sticky=tk.W)
+        self.realityscan_distortion_model_combo.grid(row=5, column=1, padx=(0, 10), pady=2, sticky=tk.W)
+
+        self.realityscan_focal_length_check = ttk.Checkbutton(
+            self.realityscan_xmp_frame,
+            text="",
+            variable=self.realityscan_focal_length_var
+        )
+        self.realityscan_focal_length_check.grid(row=5, column=2, columnspan=2, padx=5, pady=2, sticky=tk.W)
 
         self.realityscan_xmp_frame.columnconfigure(1, weight=1)
         self.realityscan_xmp_frame.columnconfigure(3, weight=1)
@@ -835,6 +865,7 @@ class Insta360ConvertGUI(tk.Tk):
 
 
     def update_ui_texts_for_language_switch(self): # pylint: disable=too-many-statements
+        self._realityscan_preset_update_in_progress = True
         self.app_name_short = S.get("app_name_short")
         self.app_version_display = S.get("constants_app_display_version_format", version=APP_VERSION_STRING_SEMVER, date=APP_RELEASE_DATE)
         self.title(f"{self.app_name_short} - {self.app_version_display}")
@@ -884,6 +915,7 @@ class Insta360ConvertGUI(tk.Tk):
         self.output_mode_colmap_radio.config(text=S.get("output_mode_colmap_label"))
         self.output_mode_realityscan_radio.config(text=S.get("output_mode_realityscan_label"))
         self.realityscan_xmp_frame.config(text=S.get("realityscan_xmp_frame_label"))
+        self.realityscan_preset_label.config(text=S.get("realityscan_preset_label"))
         self.realityscan_xmp_mode_label.config(text=S.get("realityscan_xmp_mode_label"))
         self.realityscan_coordinates_label.config(text=S.get("realityscan_coordinates_label"))
         self.realityscan_rig_id_mode_label.config(text=S.get("realityscan_rig_id_mode_label"))
@@ -892,6 +924,7 @@ class Insta360ConvertGUI(tk.Tk):
         self.realityscan_calibration_prior_label.config(text=S.get("realityscan_calibration_prior_label"))
         self.realityscan_calibration_group_label.config(text=S.get("realityscan_calibration_group_label"))
         self.realityscan_distortion_model_label.config(text=S.get("realityscan_distortion_model_label"))
+        self.realityscan_focal_length_check.config(text=S.get("realityscan_focal_length_label"))
         self.colmap_pipeline_header_label.config(text=S.get("colmap_pipeline_label"))
         self.colmap_rig_label.config(text=S.get("colmap_rig_folder_label"))
         self.colmap_exec_label.config(text=S.get("colmap_exec_label"))
@@ -933,8 +966,32 @@ class Insta360ConvertGUI(tk.Tk):
         if not current_colmap_preset_display:
             self.on_colmap_preset_changed(log=False)
 
+        current_realityscan_preset_display = self.realityscan_preset_var.get()
+        current_realityscan_preset_key = None
+        for display_name, key in self.realityscan_preset_options_map.items():
+            if display_name == current_realityscan_preset_display:
+                current_realityscan_preset_key = key
+                break
+
+        self.realityscan_preset_options_map = {
+            S.get("realityscan_preset_standard"): "standard",
+            S.get("realityscan_preset_minimal"): "minimal",
+            S.get("realityscan_preset_custom"): "custom",
+        }
+        self.realityscan_preset_key_by_display = dict(self.realityscan_preset_options_map)
+        self.realityscan_preset_display_by_key = {key: display for display, key in self.realityscan_preset_options_map.items()}
+        self.realityscan_preset_combo.config(values=list(self.realityscan_preset_options_map.keys()))
+
+        if not current_realityscan_preset_key:
+            current_realityscan_preset_key = "minimal"
+        self.realityscan_preset_var.set(self.realityscan_preset_display_by_key.get(
+            current_realityscan_preset_key,
+            list(self.realityscan_preset_options_map.keys())[0]
+        ))
+
         current_xmp_mode_key = self._get_realityscan_xmp_mode_key()
         self.realityscan_xmp_mode_options_map = {
+            S.get("realityscan_option_unset"): "unset",
             S.get("realityscan_xmp_mode_draft"): "draft",
             S.get("realityscan_xmp_mode_exact"): "exact",
             S.get("realityscan_xmp_mode_locked"): "locked",
@@ -948,6 +1005,7 @@ class Insta360ConvertGUI(tk.Tk):
 
         current_coordinates_key = self._get_realityscan_coordinates_key()
         self.realityscan_coordinates_options_map = {
+            S.get("realityscan_option_unset"): "unset",
             S.get("realityscan_coordinates_absolute"): "absolute",
             S.get("realityscan_coordinates_relative"): "relative",
         }
@@ -984,6 +1042,7 @@ class Insta360ConvertGUI(tk.Tk):
 
         current_calibration_prior_key = self._get_realityscan_calibration_prior_key()
         self.realityscan_calibration_prior_options_map = {
+            S.get("realityscan_option_unset"): "unset",
             S.get("realityscan_calibration_prior_locked"): "locked",
             S.get("realityscan_calibration_prior_initial"): "initial",
         }
@@ -996,6 +1055,7 @@ class Insta360ConvertGUI(tk.Tk):
 
         current_calibration_group_key = self._get_realityscan_calibration_group_key()
         self.realityscan_calibration_group_options_map = {
+            S.get("realityscan_option_unset"): "unset",
             S.get("realityscan_calibration_group_per_camera"): "per_camera",
             S.get("realityscan_calibration_group_per_fov"): "per_fov",
             S.get("realityscan_calibration_group_single"): "single",
@@ -1009,6 +1069,7 @@ class Insta360ConvertGUI(tk.Tk):
 
         current_distortion_model_key = self._get_realityscan_distortion_model_key()
         self.realityscan_distortion_model_options_map = {
+            S.get("realityscan_option_unset"): "unset",
             S.get("realityscan_distortion_model_division"): "division",
             S.get("realityscan_distortion_model_brown3"): "brown3",
         }
@@ -1018,6 +1079,9 @@ class Insta360ConvertGUI(tk.Tk):
             current_distortion_model_key,
             list(self.realityscan_distortion_model_options_map.keys())[0]
         ))
+
+        if not current_realityscan_preset_display:
+            self._apply_realityscan_preset(current_realityscan_preset_key)
 
         self.update_realityscan_controls_state()
         self.png_radio.config(text=S.get("png_radio_label"))
@@ -1068,6 +1132,7 @@ class Insta360ConvertGUI(tk.Tk):
         for tip_info in self.tooltips:
             tip_info["instance"].hide_tip_immediately()
         self.tooltips = []
+        self._realityscan_preset_update_in_progress = False
 
         self.add_tooltip_managed(self.input_file_entry, "input_file_entry_tooltip")
         self.add_tooltip_managed(self.browse_input_button, "browse_input_button_tooltip")
@@ -1085,6 +1150,8 @@ class Insta360ConvertGUI(tk.Tk):
         self.add_tooltip_managed(self.output_mode_colmap_radio, "output_mode_colmap_tooltip")
         self.add_tooltip_managed(self.output_mode_realityscan_radio, "output_mode_realityscan_tooltip")
         self.add_tooltip_managed(self.realityscan_xmp_frame, "realityscan_xmp_frame_tooltip")
+        self.add_tooltip_managed(self.realityscan_preset_label, "realityscan_preset_tooltip")
+        self.add_tooltip_managed(self.realityscan_preset_combo, "realityscan_preset_tooltip")
         self.add_tooltip_managed(self.realityscan_xmp_mode_label, "realityscan_xmp_mode_tooltip")
         self.add_tooltip_managed(self.realityscan_xmp_mode_combo, "realityscan_xmp_mode_tooltip")
         self.add_tooltip_managed(self.realityscan_coordinates_label, "realityscan_coordinates_tooltip")
@@ -1101,6 +1168,7 @@ class Insta360ConvertGUI(tk.Tk):
         self.add_tooltip_managed(self.realityscan_calibration_group_combo, "realityscan_calibration_group_tooltip")
         self.add_tooltip_managed(self.realityscan_distortion_model_label, "realityscan_distortion_model_tooltip")
         self.add_tooltip_managed(self.realityscan_distortion_model_combo, "realityscan_distortion_model_tooltip")
+        self.add_tooltip_managed(self.realityscan_focal_length_check, "realityscan_focal_length_tooltip")
         self.add_tooltip_managed(self.colmap_pipeline_frame, "colmap_pipeline_tooltip")
         self.add_tooltip_managed(self.colmap_rig_label, "colmap_rig_folder_tooltip")
         self.add_tooltip_managed(self.colmap_rig_entry, "colmap_rig_folder_tooltip")
@@ -1576,6 +1644,7 @@ class Insta360ConvertGUI(tk.Tk):
         entry_state = tk.NORMAL if enabled else tk.DISABLED
         combo_state = "readonly" if enabled else tk.DISABLED
 
+        self.realityscan_preset_combo.config(state=combo_state)
         self.realityscan_xmp_mode_combo.config(state=combo_state)
         self.realityscan_coordinates_combo.config(state=combo_state)
         self.realityscan_rig_id_mode_combo.config(state=combo_state)
@@ -1583,6 +1652,7 @@ class Insta360ConvertGUI(tk.Tk):
         self.realityscan_calibration_prior_combo.config(state=combo_state)
         self.realityscan_calibration_group_combo.config(state=combo_state)
         self.realityscan_distortion_model_combo.config(state=combo_state)
+        self.realityscan_focal_length_check.config(state=entry_state)
 
         rig_id_manual = self._get_realityscan_rig_id_mode_key() == "manual"
         self.realityscan_rig_id_entry.config(state=entry_state if enabled and rig_id_manual else tk.DISABLED)
@@ -1604,6 +1674,82 @@ class Insta360ConvertGUI(tk.Tk):
 
     def _get_colmap_preset_display_name(self, preset_key):
         return self.colmap_preset_display_by_key.get(preset_key, preset_key)
+
+    def _get_realityscan_preset_key(self):
+        display = self.realityscan_preset_var.get()
+        return self.realityscan_preset_key_by_display.get(display, "minimal")
+
+    def _set_realityscan_preset_key(self, preset_key):
+        display = self.realityscan_preset_display_by_key.get(preset_key)
+        if display:
+            self.realityscan_preset_var.set(display)
+
+    def _realityscan_display_for_key(self, options_map, key):
+        for display, value in options_map.items():
+            if value == key:
+                return display
+        return next(iter(options_map.keys()), "")
+
+    def _realityscan_xmp_display_for_key(self, key):
+        return self._realityscan_display_for_key(self.realityscan_xmp_mode_options_map, key)
+
+    def _realityscan_coordinates_display_for_key(self, key):
+        return self._realityscan_display_for_key(self.realityscan_coordinates_options_map, key)
+
+    def _realityscan_calibration_prior_display_for_key(self, key):
+        return self._realityscan_display_for_key(self.realityscan_calibration_prior_options_map, key)
+
+    def _realityscan_calibration_group_display_for_key(self, key):
+        return self._realityscan_display_for_key(self.realityscan_calibration_group_options_map, key)
+
+    def _realityscan_distortion_model_display_for_key(self, key):
+        return self._realityscan_display_for_key(self.realityscan_distortion_model_options_map, key)
+
+    def _apply_realityscan_preset(self, preset_key):
+        preset_map = {
+            "standard": {
+                "xmp_mode": REALITYSCAN_DEFAULT_XMP_MODE,
+                "coordinates": REALITYSCAN_DEFAULT_COORDINATES,
+                "calibration_prior": REALITYSCAN_DEFAULT_CALIBRATION_PRIOR,
+                "calibration_group": REALITYSCAN_DEFAULT_CALIBRATION_GROUP_MODE,
+                "distortion_model": REALITYSCAN_DEFAULT_DISTORTION_MODEL,
+                "focal_length": True,
+            },
+            "minimal": {
+                "xmp_mode": "draft",
+                "coordinates": "unset",
+                "calibration_prior": "unset",
+                "calibration_group": "unset",
+                "distortion_model": "unset",
+                "focal_length": True,
+            },
+        }
+        values = preset_map.get(preset_key)
+        if not values:
+            return
+        prev_update_state = self._realityscan_preset_update_in_progress
+        self._realityscan_preset_update_in_progress = True
+        try:
+            self.realityscan_xmp_mode_var.set(self._realityscan_xmp_display_for_key(values["xmp_mode"]))
+            self.realityscan_coordinates_var.set(self._realityscan_coordinates_display_for_key(values["coordinates"]))
+            self.realityscan_calibration_prior_var.set(self._realityscan_calibration_prior_display_for_key(values["calibration_prior"]))
+            self.realityscan_calibration_group_var.set(self._realityscan_calibration_group_display_for_key(values["calibration_group"]))
+            self.realityscan_distortion_model_var.set(self._realityscan_distortion_model_display_for_key(values["distortion_model"]))
+            self.realityscan_focal_length_var.set(bool(values.get("focal_length", True)))
+        finally:
+            self._realityscan_preset_update_in_progress = prev_update_state
+
+    def _on_realityscan_preset_changed(self, event=None): # pylint: disable=unused-argument
+        preset_key = self._get_realityscan_preset_key()
+        if preset_key == "custom":
+            return
+        self._apply_realityscan_preset(preset_key)
+
+    def _on_realityscan_option_changed(self, *_):
+        if self._realityscan_preset_update_in_progress:
+            return
+        if self._get_realityscan_preset_key() != "custom":
+            self._set_realityscan_preset_key("custom")
 
     def _get_realityscan_xmp_mode_key(self):
         return self.realityscan_xmp_mode_options_map.get(
@@ -3061,6 +3207,7 @@ class Insta360ConvertGUI(tk.Tk):
                 "calibration_prior": self._get_realityscan_calibration_prior_key(),
                 "calibration_group_mode": self._get_realityscan_calibration_group_key(),
                 "distortion_model": self._get_realityscan_distortion_model_key(),
+                "focal_length_enabled": bool(self.realityscan_focal_length_var.get()),
             }
         if self.cuda_fallback_triggered_for_high_res:
             effective_use_cuda = False; self.log_message_ui("log_cuda_fallback_all_cpu", "INFO", is_key=True)
@@ -3109,6 +3256,8 @@ class Insta360ConvertGUI(tk.Tk):
         return int(suffix)
 
     def _build_realityscan_calibration_groups(self, viewpoints, mode):
+        if mode in (None, "", "unset"):
+            return {}
         if mode == "single":
             return {vp["camera_name"]: 1 for vp in viewpoints}
         if mode == "per_fov":
@@ -3129,6 +3278,7 @@ class Insta360ConvertGUI(tk.Tk):
         calibration_prior = context.get("calibration_prior", REALITYSCAN_DEFAULT_CALIBRATION_PRIOR)
         calibration_group_mode = context.get("calibration_group_mode", REALITYSCAN_DEFAULT_CALIBRATION_GROUP_MODE)
         distortion_model = context.get("distortion_model", REALITYSCAN_DEFAULT_DISTORTION_MODEL)
+        focal_length_enabled = bool(context.get("focal_length_enabled", True))
 
         images_root = os.path.join(realityscan_images_root(output_folder), rig_name)
         if not os.path.isdir(images_root):
@@ -3142,6 +3292,16 @@ class Insta360ConvertGUI(tk.Tk):
             "locked": "locked",
         }
         pose_prior = pose_prior_map.get(pose_mode, "initial")
+        if pose_mode == "unset":
+            pose_prior = None
+        if coordinates == "unset":
+            coordinates = None
+        if calibration_prior == "unset":
+            calibration_prior = None
+        if calibration_group_mode == "unset":
+            calibration_group_mode = None
+        if distortion_model == "unset":
+            distortion_model = None
 
         viewpoints = context.get("viewpoints", [])
         camera_meta = {}
@@ -3150,7 +3310,7 @@ class Insta360ConvertGUI(tk.Tk):
             if not camera_name:
                 continue
             rotation = rotation_matrix_realityscan(vp.get("yaw", 0.0), vp.get("pitch", 0.0), 0.0)
-            focal = compute_focal_length_35mm(vp.get("fov", AYS_DEFAULT_FOV_INTERNAL))
+            focal = compute_focal_length_35mm(vp.get("fov", AYS_DEFAULT_FOV_INTERNAL)) if focal_length_enabled else None
             camera_meta[camera_name] = {
                 "rotation": rotation,
                 "focal_length_35mm": focal,
@@ -3194,7 +3354,8 @@ class Insta360ConvertGUI(tk.Tk):
                 if not meta:
                     continue
                 rig_pose_index = meta["camera_index"] - 1
-                calibration_group = calibration_groups.get(camera_name, 1)
+                calibration_group = calibration_groups.get(camera_name, 1) if calibration_group_mode else None
+                distortion_group = calibration_group if calibration_group_mode else None
                 xmp_payload = build_xmp_payload(
                     rig_id=rig_id,
                     rig_instance_id=rig_instance_id,
@@ -3209,10 +3370,12 @@ class Insta360ConvertGUI(tk.Tk):
                     principal_point_u=0.0,
                     principal_point_v=0.0,
                     distortion_model=distortion_model,
-                    distortion_coefficients=REALITYSCAN_DEFAULT_DISTORTION_COEFFICIENTS,
+                    distortion_coefficients=(
+                        REALITYSCAN_DEFAULT_DISTORTION_COEFFICIENTS if distortion_model else None
+                    ),
                     calibration_prior=calibration_prior,
                     calibration_group=calibration_group,
-                    distortion_group=calibration_group,
+                    distortion_group=distortion_group,
                     in_texturing=True,
                     in_meshing=True,
                     in_coloring=True,
