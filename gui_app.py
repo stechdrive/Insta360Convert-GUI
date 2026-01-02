@@ -999,6 +999,7 @@ class Insta360ConvertGUI(tk.Tk):
             S.get("realityscan_preset_official"): "official",
             S.get("realityscan_preset_insta360_ideal"): "insta360_ideal",
             S.get("realityscan_preset_insta360_rig_locked"): "insta360_rig_locked",
+            S.get("realityscan_preset_rs_exact_compat"): "rs_exact_compat",
             S.get("realityscan_preset_poseprior_exact"): "poseprior_exact",
             S.get("realityscan_preset_poseprior_locked"): "poseprior_locked",
             S.get("realityscan_preset_poseprior_unset"): "poseprior_unset",
@@ -1070,6 +1071,7 @@ class Insta360ConvertGUI(tk.Tk):
         self.realityscan_calibration_prior_options_map = {
             S.get("realityscan_option_unset"): "unset",
             S.get("realityscan_calibration_prior_locked"): "locked",
+            S.get("realityscan_calibration_prior_exact"): "exact",
             S.get("realityscan_calibration_prior_initial"): "initial",
         }
         calibration_prior_display_by_key = {key: display for display, key in self.realityscan_calibration_prior_options_map.items()}
@@ -1788,6 +1790,16 @@ class Insta360ConvertGUI(tk.Tk):
                 "focal_length": True,
                 "pose_in_common": True,
                 "editor_options": False,
+            },
+            "rs_exact_compat": {
+                "xmp_mode": "exact",
+                "coordinates": "relative",
+                "calibration_prior": "exact",
+                "calibration_group": "none",
+                "distortion_model": "division",
+                "focal_length": True,
+                "pose_in_common": False,
+                "editor_options": True,
             },
             "poseprior_exact": {
                 "xmp_mode": "exact",
