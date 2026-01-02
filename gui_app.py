@@ -1010,6 +1010,7 @@ class Insta360ConvertGUI(tk.Tk):
             S.get("realityscan_preset_minimal"): "minimal",
             S.get("realityscan_preset_official"): "official",
             S.get("realityscan_preset_insta360_ideal"): "insta360_ideal",
+            S.get("realityscan_preset_insta360_rig_locked"): "insta360_rig_locked",
             S.get("realityscan_preset_poseprior_exact"): "poseprior_exact",
             S.get("realityscan_preset_poseprior_locked"): "poseprior_locked",
             S.get("realityscan_preset_poseprior_unset"): "poseprior_unset",
@@ -1108,6 +1109,7 @@ class Insta360ConvertGUI(tk.Tk):
         current_distortion_model_key = self._get_realityscan_distortion_model_key()
         self.realityscan_distortion_model_options_map = {
             S.get("realityscan_option_unset"): "unset",
+            S.get("realityscan_distortion_model_none"): "none",
             S.get("realityscan_distortion_model_division"): "division",
             S.get("realityscan_distortion_model_brown3"): "brown3",
         }
@@ -1790,6 +1792,17 @@ class Insta360ConvertGUI(tk.Tk):
                 "calibration_prior": "locked",
                 "calibration_group": "single",
                 "distortion_model": "division",
+                "focal_length": True,
+                "common_xmp": False,
+                "editor_options": False,
+                "distortion_coefficients_alt": False,
+            },
+            "insta360_rig_locked": {
+                "xmp_mode": "locked",
+                "coordinates": "relative",
+                "calibration_prior": "locked",
+                "calibration_group": "single",
+                "distortion_model": "none",
                 "focal_length": True,
                 "common_xmp": False,
                 "editor_options": False,
@@ -3421,6 +3434,7 @@ class Insta360ConvertGUI(tk.Tk):
             calibration_group_mode = None
         if distortion_model == "unset":
             distortion_model = None
+        distortion_coefficients_enabled = bool(distortion_model) and distortion_model != "none"
 
         viewpoints = context.get("viewpoints", [])
         camera_meta = {}
@@ -3461,7 +3475,7 @@ class Insta360ConvertGUI(tk.Tk):
                     principal_point_v=0.0,
                     distortion_model=distortion_model,
                     distortion_coefficients=(
-                        REALITYSCAN_DEFAULT_DISTORTION_COEFFICIENTS if distortion_model else None
+                        REALITYSCAN_DEFAULT_DISTORTION_COEFFICIENTS if distortion_coefficients_enabled else None
                     ),
                     distortion_coefficients_attr=distortion_coefficients_attr,
                     calibration_prior=calibration_prior,
@@ -3538,7 +3552,7 @@ class Insta360ConvertGUI(tk.Tk):
                     pp_v_for_frame = 0.0
                     distortion_model_for_frame = distortion_model
                     distortion_coefficients_for_frame = (
-                        REALITYSCAN_DEFAULT_DISTORTION_COEFFICIENTS if distortion_model else None
+                        REALITYSCAN_DEFAULT_DISTORTION_COEFFICIENTS if distortion_coefficients_enabled else None
                     )
                     calibration_prior_for_frame = calibration_prior
                     calibration_group_for_frame = calibration_group
