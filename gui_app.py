@@ -976,6 +976,7 @@ class Insta360ConvertGUI(tk.Tk):
         self.realityscan_preset_options_map = {
             S.get("realityscan_preset_standard"): "standard",
             S.get("realityscan_preset_minimal"): "minimal",
+            S.get("realityscan_preset_official"): "official",
             S.get("realityscan_preset_custom"): "custom",
         }
         self.realityscan_preset_key_by_display = dict(self.realityscan_preset_options_map)
@@ -1056,6 +1057,7 @@ class Insta360ConvertGUI(tk.Tk):
         current_calibration_group_key = self._get_realityscan_calibration_group_key()
         self.realityscan_calibration_group_options_map = {
             S.get("realityscan_option_unset"): "unset",
+            S.get("realityscan_calibration_group_none"): "none",
             S.get("realityscan_calibration_group_per_camera"): "per_camera",
             S.get("realityscan_calibration_group_per_fov"): "per_fov",
             S.get("realityscan_calibration_group_single"): "single",
@@ -1721,6 +1723,14 @@ class Insta360ConvertGUI(tk.Tk):
                 "calibration_prior": "unset",
                 "calibration_group": "unset",
                 "distortion_model": "unset",
+                "focal_length": True,
+            },
+            "official": {
+                "xmp_mode": "exact",
+                "coordinates": "absolute",
+                "calibration_prior": "initial",
+                "calibration_group": "none",
+                "distortion_model": "division",
                 "focal_length": True,
             },
         }
@@ -3258,6 +3268,8 @@ class Insta360ConvertGUI(tk.Tk):
     def _build_realityscan_calibration_groups(self, viewpoints, mode):
         if mode in (None, "", "unset"):
             return {}
+        if mode == "none":
+            return {vp["camera_name"]: -1 for vp in viewpoints if vp.get("camera_name")}
         if mode == "single":
             return {vp["camera_name"]: 1 for vp in viewpoints}
         if mode == "per_fov":
