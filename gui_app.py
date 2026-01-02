@@ -116,6 +116,8 @@ class Insta360ConvertGUI(tk.Tk):
         self.colmap_matcher_var = tk.StringVar(value="sequential")
         default_colmap_exec = "colmap.exe" if os.name == 'nt' else "colmap"
         self.colmap_exec_path_var = tk.StringVar(value=default_colmap_exec)
+        default_glomap_exec = "glomap.exe" if os.name == 'nt' else "glomap"
+        self.glomap_exec_path_var = tk.StringVar(value=default_glomap_exec)
         self.colmap_matcher_options = ["sequential", "exhaustive", "vocab_tree"]
 
         self.ffmpeg_path = "ffmpeg"
@@ -639,42 +641,55 @@ class Insta360ConvertGUI(tk.Tk):
         self.colmap_exec_browse = ttk.Button(self.colmap_pipeline_body, text="", command=self.browse_colmap_exec_path)
         self.colmap_exec_browse.grid(row=1, column=4, padx=5, pady=2, sticky=tk.W)
 
+        self.glomap_exec_label = ttk.Label(self.colmap_pipeline_body, text="")
+        self.glomap_exec_label.grid(row=2, column=0, padx=5, pady=2, sticky=tk.W)
+        self.glomap_exec_entry = ttk.Entry(self.colmap_pipeline_body, textvariable=self.glomap_exec_path_var, width=45)
+        self.glomap_exec_entry.grid(row=2, column=1, padx=(0, 5), pady=2, sticky=tk.EW, columnspan=3)
+        self.glomap_exec_browse = ttk.Button(self.colmap_pipeline_body, text="", command=self.browse_glomap_exec_path)
+        self.glomap_exec_browse.grid(row=2, column=4, padx=5, pady=2, sticky=tk.W)
+
         self.colmap_preset_label = ttk.Label(self.colmap_pipeline_body, text="")
-        self.colmap_preset_label.grid(row=2, column=0, padx=5, pady=2, sticky=tk.W)
+        self.colmap_preset_label.grid(row=3, column=0, padx=5, pady=2, sticky=tk.W)
         self.colmap_preset_combo = ttk.Combobox(self.colmap_pipeline_body, textvariable=self.colmap_preset_var,
                                                 values=[], width=16, state="readonly")
-        self.colmap_preset_combo.grid(row=2, column=1, padx=(0, 5), pady=2, sticky=tk.W)
+        self.colmap_preset_combo.grid(row=3, column=1, padx=(0, 5), pady=2, sticky=tk.W)
         self.colmap_advanced_button = ttk.Button(self.colmap_pipeline_body, text="", command=self.open_colmap_advanced_dialog)
-        self.colmap_advanced_button.grid(row=2, column=2, padx=5, pady=2, sticky=tk.W)
+        self.colmap_advanced_button.grid(row=3, column=2, padx=5, pady=2, sticky=tk.W)
 
         self.colmap_matcher_label = ttk.Label(self.colmap_pipeline_body, text="")
-        self.colmap_matcher_label.grid(row=3, column=0, padx=5, pady=2, sticky=tk.W)
+        self.colmap_matcher_label.grid(row=4, column=0, padx=5, pady=2, sticky=tk.W)
         self.colmap_matcher_combo = ttk.Combobox(self.colmap_pipeline_body, textvariable=self.colmap_matcher_var,
                                                  values=self.colmap_matcher_options, width=12, state="readonly")
-        self.colmap_matcher_combo.grid(row=3, column=1, padx=(0, 5), pady=2, sticky=tk.W)
+        self.colmap_matcher_combo.grid(row=4, column=1, padx=(0, 5), pady=2, sticky=tk.W)
         self.colmap_preset_combo.bind("<<ComboboxSelected>>", self.on_colmap_preset_changed)
         self.colmap_matcher_combo.bind("<<ComboboxSelected>>", self.on_colmap_matcher_changed)
 
         self.colmap_vocab_tree_label = ttk.Label(self.colmap_pipeline_body, text="")
-        self.colmap_vocab_tree_label.grid(row=4, column=0, padx=5, pady=2, sticky=tk.W)
+        self.colmap_vocab_tree_label.grid(row=5, column=0, padx=5, pady=2, sticky=tk.W)
         self.colmap_vocab_tree_entry = ttk.Entry(self.colmap_pipeline_body, textvariable=self.colmap_vocab_tree_path_var, width=45)
-        self.colmap_vocab_tree_entry.grid(row=4, column=1, padx=(0, 5), pady=2, sticky=tk.EW, columnspan=3)
+        self.colmap_vocab_tree_entry.grid(row=5, column=1, padx=(0, 5), pady=2, sticky=tk.EW, columnspan=3)
         self.colmap_vocab_tree_browse = ttk.Button(self.colmap_pipeline_body, text="", command=self.browse_colmap_vocab_tree_path)
-        self.colmap_vocab_tree_browse.grid(row=4, column=4, padx=5, pady=2, sticky=tk.W)
+        self.colmap_vocab_tree_browse.grid(row=5, column=4, padx=5, pady=2, sticky=tk.W)
 
         self.colmap_postshot_label = ttk.Label(self.colmap_pipeline_body, text="")
-        self.colmap_postshot_label.grid(row=5, column=0, padx=5, pady=2, sticky=tk.W)
+        self.colmap_postshot_label.grid(row=6, column=0, padx=5, pady=2, sticky=tk.W)
         self.colmap_postshot_entry = ttk.Entry(self.colmap_pipeline_body, textvariable=self.colmap_postshot_folder_var, width=35)
-        self.colmap_postshot_entry.grid(row=5, column=1, padx=(0, 5), pady=2, sticky=tk.EW, columnspan=3)
+        self.colmap_postshot_entry.grid(row=6, column=1, padx=(0, 5), pady=2, sticky=tk.EW, columnspan=3)
         self.colmap_postshot_browse = ttk.Button(self.colmap_pipeline_body, text="", command=self.browse_postshot_folder)
-        self.colmap_postshot_browse.grid(row=5, column=4, padx=5, pady=2, sticky=tk.W)
+        self.colmap_postshot_browse.grid(row=6, column=4, padx=5, pady=2, sticky=tk.W)
 
         self.colmap_run_button = ttk.Button(self.colmap_pipeline_body, text="", command=self.start_colmap_pipeline)
-        self.colmap_run_button.grid(row=6, column=0, padx=5, pady=(4, 2), sticky=tk.W)
+        self.colmap_run_button.grid(row=7, column=0, padx=5, pady=(4, 2), sticky=tk.W)
+        self.glomap_run_button = ttk.Button(
+            self.colmap_pipeline_body,
+            text="",
+            command=lambda: self.start_colmap_pipeline("glomap")
+        )
+        self.glomap_run_button.grid(row=7, column=1, padx=5, pady=(4, 2), sticky=tk.W)
         self.colmap_cancel_button = ttk.Button(self.colmap_pipeline_body, text="", command=self.cancel_colmap_pipeline, state="disabled")
-        self.colmap_cancel_button.grid(row=6, column=1, padx=5, pady=(4, 2), sticky=tk.W)
+        self.colmap_cancel_button.grid(row=7, column=2, padx=5, pady=(4, 2), sticky=tk.W)
         self.colmap_progress_frame = ttk.Frame(self.colmap_pipeline_body)
-        self.colmap_progress_frame.grid(row=7, column=0, columnspan=5, padx=5, pady=(2, 0), sticky=tk.EW)
+        self.colmap_progress_frame.grid(row=8, column=0, columnspan=5, padx=5, pady=(2, 0), sticky=tk.EW)
         self.colmap_progress_label = ttk.Label(self.colmap_progress_frame, textvariable=self.colmap_progress_text_var)
         self.colmap_progress_label.pack(side=tk.LEFT, padx=(0, 5))
         self.colmap_progress_bar = ttk.Progressbar(self.colmap_progress_frame, orient="horizontal", length=200, mode="determinate")
@@ -761,15 +776,18 @@ class Insta360ConvertGUI(tk.Tk):
         self.colmap_pipeline_header_label.config(text=S.get("colmap_pipeline_label"))
         self.colmap_rig_label.config(text=S.get("colmap_rig_folder_label"))
         self.colmap_exec_label.config(text=S.get("colmap_exec_label"))
+        self.glomap_exec_label.config(text=S.get("glomap_exec_label"))
         self.colmap_preset_label.config(text=S.get("colmap_preset_label"))
         self.colmap_vocab_tree_label.config(text=S.get("colmap_vocab_tree_label"))
         self.colmap_matcher_label.config(text=S.get("colmap_matcher_label"))
         self.colmap_postshot_label.config(text=S.get("colmap_postshot_output_label"))
         self.colmap_rig_browse.config(text=S.get("browse_button"))
         self.colmap_exec_browse.config(text=S.get("browse_button"))
+        self.glomap_exec_browse.config(text=S.get("browse_button"))
         self.colmap_vocab_tree_browse.config(text=S.get("browse_button"))
         self.colmap_postshot_browse.config(text=S.get("browse_button"))
         self.colmap_run_button.config(text=S.get("colmap_run_button_label"))
+        self.glomap_run_button.config(text=S.get("glomap_run_button_label"))
         self.colmap_cancel_button.config(text=S.get("colmap_cancel_button_label"))
         self.colmap_advanced_button.config(text=S.get("colmap_advanced_button_label"))
 
@@ -868,6 +886,9 @@ class Insta360ConvertGUI(tk.Tk):
         self.add_tooltip_managed(self.colmap_exec_label, "colmap_exec_tooltip")
         self.add_tooltip_managed(self.colmap_exec_entry, "colmap_exec_tooltip")
         self.add_tooltip_managed(self.colmap_exec_browse, "colmap_exec_browse_tooltip")
+        self.add_tooltip_managed(self.glomap_exec_label, "glomap_exec_tooltip")
+        self.add_tooltip_managed(self.glomap_exec_entry, "glomap_exec_tooltip")
+        self.add_tooltip_managed(self.glomap_exec_browse, "glomap_exec_browse_tooltip")
         self.add_tooltip_managed(self.colmap_preset_label, "colmap_preset_tooltip")
         self.add_tooltip_managed(self.colmap_preset_combo, "colmap_preset_tooltip")
         self.add_tooltip_managed(self.colmap_advanced_button, "colmap_advanced_tooltip")
@@ -880,6 +901,7 @@ class Insta360ConvertGUI(tk.Tk):
         self.add_tooltip_managed(self.colmap_postshot_entry, "colmap_postshot_output_tooltip")
         self.add_tooltip_managed(self.colmap_postshot_browse, "colmap_postshot_output_browse_tooltip")
         self.add_tooltip_managed(self.colmap_run_button, "colmap_run_button_tooltip")
+        self.add_tooltip_managed(self.glomap_run_button, "glomap_run_button_tooltip")
         self.add_tooltip_managed(self.colmap_cancel_button, "colmap_cancel_button_tooltip")
         self.add_tooltip_managed(self.colmap_progress_label, "colmap_progress_tooltip")
         self.add_tooltip_managed(self.colmap_progress_bar, "colmap_progress_tooltip")
@@ -1180,6 +1202,12 @@ class Insta360ConvertGUI(tk.Tk):
             self.log_message_ui("log_colmap_exec_selected_format", "INFO", is_key=True, filepath=file_path)
             self._auto_detect_vocab_tree_path(file_path, log_missing=True)
 
+    def browse_glomap_exec_path(self):
+        file_path = filedialog.askopenfilename(title=S.get("glomap_exec_browse_title"))
+        if file_path:
+            self.glomap_exec_path_var.set(file_path)
+            self.log_message_ui("log_glomap_exec_selected_format", "INFO", is_key=True, filepath=file_path)
+
     def browse_colmap_vocab_tree_path(self):
         file_path = filedialog.askopenfilename(title=S.get("colmap_vocab_tree_browse_title"),
                                                filetypes=((S.get("filetype_vocab_tree"), "*.bin"),
@@ -1321,12 +1349,15 @@ class Insta360ConvertGUI(tk.Tk):
         self.colmap_rig_browse.config(state=browse_state)
         self.colmap_exec_entry.config(state=entry_state)
         self.colmap_exec_browse.config(state=browse_state)
+        self.glomap_exec_entry.config(state=entry_state)
+        self.glomap_exec_browse.config(state=browse_state)
         self.colmap_preset_combo.config(state=preset_state)
         self.colmap_advanced_button.config(state=run_state)
         self.colmap_matcher_combo.config(state=matcher_state)
         self.colmap_postshot_entry.config(state=entry_state)
         self.colmap_postshot_browse.config(state=browse_state)
         self.colmap_run_button.config(state=run_state)
+        self.glomap_run_button.config(state=run_state)
         self.colmap_cancel_button.config(state=cancel_state)
         self._update_colmap_vocab_tree_state(colmap_enabled)
 
@@ -1716,7 +1747,16 @@ class Insta360ConvertGUI(tk.Tk):
         resolved = shutil.which(raw_path)
         return resolved
 
-    def validate_colmap_pipeline_inputs(self):
+    def resolve_glomap_executable(self):
+        raw_path = self.glomap_exec_path_var.get().strip()
+        if not raw_path:
+            raw_path = "glomap.exe" if os.name == 'nt' else "glomap"
+        if os.path.isfile(raw_path):
+            return raw_path
+        resolved = shutil.which(raw_path)
+        return resolved
+
+    def validate_colmap_pipeline_inputs(self, require_glomap=False):
         rig_folder = self.colmap_rig_folder_var.get().strip()
         if not rig_folder or not os.path.isdir(rig_folder):
             self.log_message_ui("log_colmap_pipeline_invalid_rig_folder_format", "ERROR", is_key=True, path=rig_folder)
@@ -1734,6 +1774,13 @@ class Insta360ConvertGUI(tk.Tk):
             self.log_message_ui("log_colmap_pipeline_colmap_not_found_format", "ERROR", is_key=True,
                                 path=self.colmap_exec_path_var.get().strip())
             return None
+        glomap_exec = None
+        if require_glomap:
+            glomap_exec = self.resolve_glomap_executable()
+            if not glomap_exec:
+                self.log_message_ui("log_glomap_exec_not_found_format", "ERROR", is_key=True,
+                                    path=self.glomap_exec_path_var.get().strip())
+                return None
         postshot_output = self.colmap_postshot_folder_var.get().strip()
         if not postshot_output:
             postshot_output = os.path.join(rig_folder, "postshot")
@@ -1780,6 +1827,7 @@ class Insta360ConvertGUI(tk.Tk):
             "images_dir": images_dir,
             "rig_config": rig_config,
             "colmap_exec": colmap_exec,
+            "glomap_exec": glomap_exec,
             "postshot_output": postshot_output,
             "matcher": matcher,
             "preset_key": preset_key,
@@ -2089,11 +2137,12 @@ class Insta360ConvertGUI(tk.Tk):
         except OSError:
             return None
 
-    def _compute_colmap_options_hash(self, preset_key, matcher, options):
+    def _compute_colmap_options_hash(self, preset_key, matcher, options, mapper_backend="colmap"):
         payload = {
             "preset_key": preset_key,
             "matcher": matcher,
-            "options": options
+            "options": options,
+            "mapper_backend": mapper_backend
         }
         serialized = json.dumps(payload, sort_keys=True, ensure_ascii=False)
         return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
@@ -2238,14 +2287,16 @@ class Insta360ConvertGUI(tk.Tk):
         self.wait_window(dialog)
         return result["value"]
 
-    def start_colmap_pipeline(self):
+    def start_colmap_pipeline(self, mapper_backend="colmap"):
         if self.conversion_pool:
             self.log_message_ui("log_colmap_pipeline_blocked_by_conversion", "WARNING", is_key=True); return
         if self.colmap_running:
             self.log_message_ui("log_colmap_pipeline_already_running", "WARNING", is_key=True); return
-        config = self.validate_colmap_pipeline_inputs()
+        use_glomap = mapper_backend == "glomap"
+        config = self.validate_colmap_pipeline_inputs(require_glomap=use_glomap)
         if not config:
             return
+        config["mapper_backend"] = mapper_backend
         rig_folder = config["rig_folder"]
         db_path = os.path.join(rig_folder, "database.db")
         state_path = self._get_colmap_pipeline_state_path(rig_folder)
@@ -2254,7 +2305,9 @@ class Insta360ConvertGUI(tk.Tk):
         images_snapshot = self._get_images_snapshot(config["images_dir"])
         image_count = images_snapshot.get("count", 0) if images_snapshot else 0
         frame_count = self._get_frame_count(config["images_dir"])
-        options_hash = self._compute_colmap_options_hash(config["preset_key"], config["matcher"], config["options"])
+        options_hash = self._compute_colmap_options_hash(
+            config["preset_key"], config["matcher"], config["options"], mapper_backend=mapper_backend
+        )
 
         state_data = dict(existing_state) if existing_state else {}
         state_data.update({
@@ -2262,6 +2315,7 @@ class Insta360ConvertGUI(tk.Tk):
             "preset_key": config["preset_key"],
             "matcher": config["matcher"],
             "options_hash": options_hash,
+            "mapper_backend": mapper_backend,
             "rig_config_mtime": rig_config_mtime,
             "images_snapshot": images_snapshot,
             "updated_at": self._now_iso_timestamp()
@@ -2327,8 +2381,12 @@ class Insta360ConvertGUI(tk.Tk):
         self.colmap_pipeline_state_path = state_path
         self.colmap_last_completed_step = state_data.get("last_completed_step")
         self.colmap_pipeline_state_data = state_data
-        self.log_message_ui("log_colmap_pipeline_start_format", "INFO", is_key=True,
-                            rig_folder=rig_folder, matcher=config["matcher"], postshot_output=postshot_output)
+        if use_glomap:
+            self.log_message_ui("log_glomap_pipeline_start_format", "INFO", is_key=True,
+                                rig_folder=rig_folder, matcher=config["matcher"], postshot_output=postshot_output)
+        else:
+            self.log_message_ui("log_colmap_pipeline_start_format", "INFO", is_key=True,
+                                rig_folder=rig_folder, matcher=config["matcher"], postshot_output=postshot_output)
         self.log_message_ui("log_colmap_pipeline_preset_format", "INFO", is_key=True,
                             preset=self._get_colmap_preset_display_name(config["preset_key"]))
         config["state_path"] = state_path
@@ -2370,6 +2428,12 @@ class Insta360ConvertGUI(tk.Tk):
             state_path = config.get("state_path")
             state_data = config.get("state_data") or {}
             matcher_name = config["matcher"]
+            mapper_backend = config.get("mapper_backend", "colmap")
+            glomap_exec = config.get("glomap_exec") if mapper_backend == "glomap" else None
+            if mapper_backend == "glomap" and not glomap_exec:
+                self.log_message_ui_threadsafe("log_glomap_exec_not_found_format", "ERROR", is_key=True,
+                                               path=self.glomap_exec_path_var.get().strip())
+                return
 
             def apply_supported_options(command_name, base_cmd, option_values, alias_map=None):
                 supported = self._get_colmap_supported_options(colmap_exec, command_name)
@@ -2409,18 +2473,26 @@ class Insta360ConvertGUI(tk.Tk):
             matcher_cmd = apply_supported_options(matcher_command_name, matcher_cmd,
                                                   options.get("matcher", {}),
                                                   alias_map=matcher_alias_map)
-            mapper_cmd = [
-                colmap_exec, "mapper",
-                "--database_path", db_path,
-                "--image_path", images_dir,
-                "--output_path", sparse_dir
-            ]
-            mapper_alias_map = {
-                "Mapper.ba_global_frames_ratio": ["Mapper.ba_global_images_ratio"],
-                "Mapper.ba_global_images_ratio": ["Mapper.ba_global_frames_ratio"]
-            }
-            mapper_cmd = apply_supported_options("mapper", mapper_cmd, options.get("mapper", {}),
-                                                 alias_map=mapper_alias_map)
+            if mapper_backend == "glomap":
+                mapper_cmd = [
+                    glomap_exec, "mapper",
+                    "--database_path", db_path,
+                    "--image_path", images_dir,
+                    "--output_path", sparse_dir
+                ]
+            else:
+                mapper_cmd = [
+                    colmap_exec, "mapper",
+                    "--database_path", db_path,
+                    "--image_path", images_dir,
+                    "--output_path", sparse_dir
+                ]
+                mapper_alias_map = {
+                    "Mapper.ba_global_frames_ratio": ["Mapper.ba_global_images_ratio"],
+                    "Mapper.ba_global_images_ratio": ["Mapper.ba_global_frames_ratio"]
+                }
+                mapper_cmd = apply_supported_options("mapper", mapper_cmd, options.get("mapper", {}),
+                                                     alias_map=mapper_alias_map)
 
             step_commands = [
                 ("feature_extractor", feature_cmd),
@@ -2433,7 +2505,8 @@ class Insta360ConvertGUI(tk.Tk):
                     continue
                 self.colmap_active_step = step_name
                 self._begin_colmap_step_progress(step_name, config)
-                if not self._run_colmap_command(command):
+                command_label = "GLOMAP" if (step_name == "mapper" and mapper_backend == "glomap") else "COLMAP"
+                if not self._run_colmap_command(command, log_prefix=command_label):
                     return
                 self.colmap_last_completed_step = step_name
                 self._mark_colmap_step_complete(step_name)
@@ -2473,12 +2546,15 @@ class Insta360ConvertGUI(tk.Tk):
             self.after(0, self.update_colmap_controls_state)
             self.after(0, lambda: self._finalize_colmap_progress(success))
 
-    def _run_colmap_command(self, command):
+    def _run_colmap_command(self, command, log_prefix="COLMAP"):
         if self.colmap_cancel_event and self.colmap_cancel_event.is_set():
             self.log_message_ui_threadsafe("log_colmap_pipeline_cancelled", "INFO", is_key=True)
             return False
         command_str = subprocess.list2cmdline(command) if os.name == 'nt' else " ".join(command)
-        self.log_message_ui_threadsafe("log_colmap_pipeline_command_format", "DEBUG", is_key=True, command=command_str)
+        if log_prefix == "GLOMAP":
+            self.log_message_ui_threadsafe("log_glomap_pipeline_command_format", "DEBUG", is_key=True, command=command_str)
+        else:
+            self.log_message_ui_threadsafe("log_colmap_pipeline_command_format", "DEBUG", is_key=True, command=command_str)
         startupinfo = self.get_startupinfo()
         unsupported_option = False
         try:
@@ -2507,18 +2583,27 @@ class Insta360ConvertGUI(tk.Tk):
                         if "unrecognized option" in lower_line or "unknown option" in lower_line:
                             unsupported_option = True
                         self._update_colmap_progress_from_log(clean_line)
-                        self.log_message_ui_threadsafe(f"COLMAP: {clean_line}", "DEBUG")
+                        prefix = "GLOMAP" if log_prefix == "GLOMAP" else "COLMAP"
+                        self.log_message_ui_threadsafe(f"{prefix}: {clean_line}", "DEBUG")
             self.colmap_active_process.wait()
             if self.colmap_active_process.returncode != 0:
-                self.log_message_ui_threadsafe("log_colmap_pipeline_command_failed_format", "ERROR", is_key=True,
-                                               code=self.colmap_active_process.returncode, command=command_str)
+                if log_prefix == "GLOMAP":
+                    self.log_message_ui_threadsafe("log_glomap_pipeline_command_failed_format", "ERROR", is_key=True,
+                                                   code=self.colmap_active_process.returncode, command=command_str)
+                else:
+                    self.log_message_ui_threadsafe("log_colmap_pipeline_command_failed_format", "ERROR", is_key=True,
+                                                   code=self.colmap_active_process.returncode, command=command_str)
                 if unsupported_option:
                     self.log_message_ui_threadsafe("log_colmap_pipeline_option_unsupported_hint", "ERROR", is_key=True)
                 return False
             return True
         except Exception as e: # pylint: disable=broad-except
-            self.log_message_ui_threadsafe("log_colmap_pipeline_command_exception_format", "ERROR", is_key=True,
-                                           command=command_str, error=str(e))
+            if log_prefix == "GLOMAP":
+                self.log_message_ui_threadsafe("log_glomap_pipeline_command_exception_format", "ERROR", is_key=True,
+                                               command=command_str, error=str(e))
+            else:
+                self.log_message_ui_threadsafe("log_colmap_pipeline_command_exception_format", "ERROR", is_key=True,
+                                               command=command_str, error=str(e))
             return False
         finally:
             if self.colmap_active_process and self.colmap_active_process.stdout:
