@@ -141,6 +141,8 @@ class Insta360ConvertGUI(tk.Tk):
         self.colmap_matcher_options = ["sequential", "exhaustive", "vocab_tree"]
         self.realityscan_preset_var = tk.StringVar()
         self.realityscan_focal_length_var = tk.BooleanVar(value=True)
+        self.realityscan_common_xmp_var = tk.BooleanVar(value=False)
+        self.realityscan_editor_options_var = tk.BooleanVar(value=True)
         self.realityscan_xmp_mode_var = tk.StringVar()
         self.realityscan_rig_id_mode_var = tk.StringVar()
         self.realityscan_rig_id_var = tk.StringVar()
@@ -232,6 +234,8 @@ class Insta360ConvertGUI(tk.Tk):
         self.realityscan_calibration_group_var.trace_add("write", self._on_realityscan_option_changed)
         self.realityscan_distortion_model_var.trace_add("write", self._on_realityscan_option_changed)
         self.realityscan_focal_length_var.trace_add("write", self._on_realityscan_option_changed)
+        self.realityscan_common_xmp_var.trace_add("write", self._on_realityscan_option_changed)
+        self.realityscan_editor_options_var.trace_add("write", self._on_realityscan_option_changed)
         self.update_ui_texts_for_language_switch()
 
         self.update_resolution_options()
@@ -689,6 +693,20 @@ class Insta360ConvertGUI(tk.Tk):
         )
         self.realityscan_focal_length_check.grid(row=5, column=2, columnspan=2, padx=5, pady=2, sticky=tk.W)
 
+        self.realityscan_common_xmp_check = ttk.Checkbutton(
+            self.realityscan_xmp_frame,
+            text="",
+            variable=self.realityscan_common_xmp_var
+        )
+        self.realityscan_common_xmp_check.grid(row=6, column=0, columnspan=2, padx=5, pady=2, sticky=tk.W)
+
+        self.realityscan_editor_options_check = ttk.Checkbutton(
+            self.realityscan_xmp_frame,
+            text="",
+            variable=self.realityscan_editor_options_var
+        )
+        self.realityscan_editor_options_check.grid(row=6, column=2, columnspan=2, padx=5, pady=2, sticky=tk.W)
+
         self.realityscan_xmp_frame.columnconfigure(1, weight=1)
         self.realityscan_xmp_frame.columnconfigure(3, weight=1)
 
@@ -925,6 +943,8 @@ class Insta360ConvertGUI(tk.Tk):
         self.realityscan_calibration_group_label.config(text=S.get("realityscan_calibration_group_label"))
         self.realityscan_distortion_model_label.config(text=S.get("realityscan_distortion_model_label"))
         self.realityscan_focal_length_check.config(text=S.get("realityscan_focal_length_label"))
+        self.realityscan_common_xmp_check.config(text=S.get("realityscan_common_xmp_label"))
+        self.realityscan_editor_options_check.config(text=S.get("realityscan_editor_options_label"))
         self.colmap_pipeline_header_label.config(text=S.get("colmap_pipeline_label"))
         self.colmap_rig_label.config(text=S.get("colmap_rig_folder_label"))
         self.colmap_exec_label.config(text=S.get("colmap_exec_label"))
@@ -1171,6 +1191,8 @@ class Insta360ConvertGUI(tk.Tk):
         self.add_tooltip_managed(self.realityscan_distortion_model_label, "realityscan_distortion_model_tooltip")
         self.add_tooltip_managed(self.realityscan_distortion_model_combo, "realityscan_distortion_model_tooltip")
         self.add_tooltip_managed(self.realityscan_focal_length_check, "realityscan_focal_length_tooltip")
+        self.add_tooltip_managed(self.realityscan_common_xmp_check, "realityscan_common_xmp_tooltip")
+        self.add_tooltip_managed(self.realityscan_editor_options_check, "realityscan_editor_options_tooltip")
         self.add_tooltip_managed(self.colmap_pipeline_frame, "colmap_pipeline_tooltip")
         self.add_tooltip_managed(self.colmap_rig_label, "colmap_rig_folder_tooltip")
         self.add_tooltip_managed(self.colmap_rig_entry, "colmap_rig_folder_tooltip")
@@ -1655,6 +1677,8 @@ class Insta360ConvertGUI(tk.Tk):
         self.realityscan_calibration_group_combo.config(state=combo_state)
         self.realityscan_distortion_model_combo.config(state=combo_state)
         self.realityscan_focal_length_check.config(state=entry_state)
+        self.realityscan_common_xmp_check.config(state=entry_state)
+        self.realityscan_editor_options_check.config(state=entry_state)
 
         rig_id_manual = self._get_realityscan_rig_id_mode_key() == "manual"
         self.realityscan_rig_id_entry.config(state=entry_state if enabled and rig_id_manual else tk.DISABLED)
@@ -1716,6 +1740,8 @@ class Insta360ConvertGUI(tk.Tk):
                 "calibration_group": REALITYSCAN_DEFAULT_CALIBRATION_GROUP_MODE,
                 "distortion_model": REALITYSCAN_DEFAULT_DISTORTION_MODEL,
                 "focal_length": True,
+                "common_xmp": False,
+                "editor_options": True,
             },
             "minimal": {
                 "xmp_mode": "draft",
@@ -1724,6 +1750,8 @@ class Insta360ConvertGUI(tk.Tk):
                 "calibration_group": "unset",
                 "distortion_model": "unset",
                 "focal_length": True,
+                "common_xmp": False,
+                "editor_options": True,
             },
             "official": {
                 "xmp_mode": "exact",
@@ -1732,6 +1760,8 @@ class Insta360ConvertGUI(tk.Tk):
                 "calibration_group": "none",
                 "distortion_model": "division",
                 "focal_length": True,
+                "common_xmp": False,
+                "editor_options": True,
             },
         }
         values = preset_map.get(preset_key)
@@ -1746,6 +1776,8 @@ class Insta360ConvertGUI(tk.Tk):
             self.realityscan_calibration_group_var.set(self._realityscan_calibration_group_display_for_key(values["calibration_group"]))
             self.realityscan_distortion_model_var.set(self._realityscan_distortion_model_display_for_key(values["distortion_model"]))
             self.realityscan_focal_length_var.set(bool(values.get("focal_length", True)))
+            self.realityscan_common_xmp_var.set(bool(values.get("common_xmp", False)))
+            self.realityscan_editor_options_var.set(bool(values.get("editor_options", True)))
         finally:
             self._realityscan_preset_update_in_progress = prev_update_state
 
@@ -3218,6 +3250,8 @@ class Insta360ConvertGUI(tk.Tk):
                 "calibration_group_mode": self._get_realityscan_calibration_group_key(),
                 "distortion_model": self._get_realityscan_distortion_model_key(),
                 "focal_length_enabled": bool(self.realityscan_focal_length_var.get()),
+                "common_xmp_enabled": bool(self.realityscan_common_xmp_var.get()),
+                "editor_options_enabled": bool(self.realityscan_editor_options_var.get()),
             }
         if self.cuda_fallback_triggered_for_high_res:
             effective_use_cuda = False; self.log_message_ui("log_cuda_fallback_all_cpu", "INFO", is_key=True)
@@ -3291,6 +3325,8 @@ class Insta360ConvertGUI(tk.Tk):
         calibration_group_mode = context.get("calibration_group_mode", REALITYSCAN_DEFAULT_CALIBRATION_GROUP_MODE)
         distortion_model = context.get("distortion_model", REALITYSCAN_DEFAULT_DISTORTION_MODEL)
         focal_length_enabled = bool(context.get("focal_length_enabled", True))
+        common_xmp_enabled = bool(context.get("common_xmp_enabled", False))
+        editor_options_enabled = bool(context.get("editor_options_enabled", True))
 
         images_root = os.path.join(realityscan_images_root(output_folder), rig_name)
         if not os.path.isdir(images_root):
@@ -3332,6 +3368,42 @@ class Insta360ConvertGUI(tk.Tk):
 
         calibration_groups = self._build_realityscan_calibration_groups(viewpoints, calibration_group_mode)
 
+        if common_xmp_enabled:
+            for camera_name, meta in camera_meta.items():
+                cam_path = os.path.join(images_root, camera_name)
+                if not os.path.isdir(cam_path):
+                    continue
+                calibration_group = calibration_groups.get(camera_name, 1) if calibration_group_mode else None
+                distortion_group = calibration_group if calibration_group_mode else None
+                common_payload = build_xmp_payload(
+                    rig_id=None,
+                    rig_instance_id=None,
+                    rig_pose_index=None,
+                    pose_prior=pose_prior,
+                    coordinates=coordinates,
+                    rotation_matrix=None,
+                    position=None,
+                    focal_length_35mm=meta["focal_length_35mm"] if focal_length_enabled else None,
+                    aspect_ratio=1.0,
+                    skew=0.0,
+                    principal_point_u=0.0,
+                    principal_point_v=0.0,
+                    distortion_model=distortion_model,
+                    distortion_coefficients=(
+                        REALITYSCAN_DEFAULT_DISTORTION_COEFFICIENTS if distortion_model else None
+                    ),
+                    calibration_prior=calibration_prior,
+                    calibration_group=calibration_group,
+                    distortion_group=distortion_group,
+                    in_texturing=True if editor_options_enabled else None,
+                    in_meshing=True if editor_options_enabled else None,
+                    in_coloring=True if editor_options_enabled else None,
+                    version="3",
+                )
+                common_path = os.path.join(cam_path, "_common.xmp")
+                with open(common_path, "w", encoding="utf-8") as common_file:
+                    common_file.write(common_payload)
+
         frame_map = {}
         for camera_name in sorted(os.listdir(images_root)):
             cam_path = os.path.join(images_root, camera_name)
@@ -3368,29 +3440,66 @@ class Insta360ConvertGUI(tk.Tk):
                 rig_pose_index = meta["camera_index"] - 1
                 calibration_group = calibration_groups.get(camera_name, 1) if calibration_group_mode else None
                 distortion_group = calibration_group if calibration_group_mode else None
+                if common_xmp_enabled:
+                    pose_prior_for_frame = None
+                    coordinates_for_frame = None
+                    focal_for_frame = None
+                    aspect_ratio_for_frame = None
+                    skew_for_frame = None
+                    pp_u_for_frame = None
+                    pp_v_for_frame = None
+                    distortion_model_for_frame = None
+                    distortion_coefficients_for_frame = None
+                    calibration_prior_for_frame = None
+                    calibration_group_for_frame = None
+                    distortion_group_for_frame = None
+                    in_texturing_for_frame = None
+                    in_meshing_for_frame = None
+                    in_coloring_for_frame = None
+                else:
+                    pose_prior_for_frame = pose_prior
+                    coordinates_for_frame = coordinates
+                    focal_for_frame = meta["focal_length_35mm"]
+                    aspect_ratio_for_frame = 1.0
+                    skew_for_frame = 0.0
+                    pp_u_for_frame = 0.0
+                    pp_v_for_frame = 0.0
+                    distortion_model_for_frame = distortion_model
+                    distortion_coefficients_for_frame = (
+                        REALITYSCAN_DEFAULT_DISTORTION_COEFFICIENTS if distortion_model else None
+                    )
+                    calibration_prior_for_frame = calibration_prior
+                    calibration_group_for_frame = calibration_group
+                    distortion_group_for_frame = distortion_group
+                    if editor_options_enabled:
+                        in_texturing_for_frame = True
+                        in_meshing_for_frame = True
+                        in_coloring_for_frame = True
+                    else:
+                        in_texturing_for_frame = None
+                        in_meshing_for_frame = None
+                        in_coloring_for_frame = None
                 xmp_payload = build_xmp_payload(
                     rig_id=rig_id,
                     rig_instance_id=rig_instance_id,
                     rig_pose_index=rig_pose_index,
-                    pose_prior=pose_prior,
-                    coordinates=coordinates,
+                    pose_prior=pose_prior_for_frame,
+                    coordinates=coordinates_for_frame,
                     rotation_matrix=meta["rotation"],
                     position=default_position,
-                    focal_length_35mm=meta["focal_length_35mm"],
-                    aspect_ratio=1.0,
-                    skew=0.0,
-                    principal_point_u=0.0,
-                    principal_point_v=0.0,
-                    distortion_model=distortion_model,
-                    distortion_coefficients=(
-                        REALITYSCAN_DEFAULT_DISTORTION_COEFFICIENTS if distortion_model else None
-                    ),
-                    calibration_prior=calibration_prior,
-                    calibration_group=calibration_group,
-                    distortion_group=distortion_group,
-                    in_texturing=True,
-                    in_meshing=True,
-                    in_coloring=True,
+                    focal_length_35mm=focal_for_frame,
+                    aspect_ratio=aspect_ratio_for_frame,
+                    skew=skew_for_frame,
+                    principal_point_u=pp_u_for_frame,
+                    principal_point_v=pp_v_for_frame,
+                    distortion_model=distortion_model_for_frame,
+                    distortion_coefficients=distortion_coefficients_for_frame,
+                    calibration_prior=calibration_prior_for_frame,
+                    calibration_group=calibration_group_for_frame,
+                    distortion_group=distortion_group_for_frame,
+                    in_texturing=in_texturing_for_frame,
+                    in_meshing=in_meshing_for_frame,
+                    in_coloring=in_coloring_for_frame,
                     version="3",
                 )
                 xmp_path = os.path.splitext(image_path)[0] + ".xmp"

@@ -279,17 +279,18 @@ def build_xmp_payload(
     in_coloring=True,
     version="3",
 ):
-    rotation_str = format_matrix(rotation_matrix)
-    position_str = format_vector(position)
-    aspect_ratio_str = _format_float(aspect_ratio)
-    skew_str = _format_float(skew)
-    pp_u_str = _format_float(principal_point_u)
-    pp_v_str = _format_float(principal_point_v)
+    rotation_str = format_matrix(rotation_matrix) if rotation_matrix is not None else None
+    position_str = format_vector(position) if position is not None else None
+    aspect_ratio_str = _format_float(aspect_ratio) if aspect_ratio is not None else None
+    skew_str = _format_float(skew) if skew is not None else None
+    pp_u_str = _format_float(principal_point_u) if principal_point_u is not None else None
+    pp_v_str = _format_float(principal_point_v) if principal_point_v is not None else None
 
     attrs = [f'xcr:Version="{version}"']
     if pose_prior:
         attrs.append(f'xcr:PosePrior="{pose_prior}"')
-    attrs.append(f'xcr:Rotation="{rotation_str}"')
+    if rotation_str:
+        attrs.append(f'xcr:Rotation="{rotation_str}"')
     if coordinates:
         attrs.append(f'xcr:Coordinates="{coordinates}"')
     if distortion_model:
@@ -300,30 +301,45 @@ def build_xmp_payload(
     if focal_length_35mm is not None:
         focal_str = _format_float(focal_length_35mm)
         attrs.append(f'xcr:FocalLength35mm="{focal_str}"')
-    attrs.append(f'xcr:Skew="{skew_str}"')
-    attrs.append(f'xcr:AspectRatio="{aspect_ratio_str}"')
-    attrs.append(f'xcr:PrincipalPointU="{pp_u_str}"')
-    attrs.append(f'xcr:PrincipalPointV="{pp_v_str}"')
+    if skew_str is not None:
+        attrs.append(f'xcr:Skew="{skew_str}"')
+    if aspect_ratio_str is not None:
+        attrs.append(f'xcr:AspectRatio="{aspect_ratio_str}"')
+    if pp_u_str is not None:
+        attrs.append(f'xcr:PrincipalPointU="{pp_u_str}"')
+    if pp_v_str is not None:
+        attrs.append(f'xcr:PrincipalPointV="{pp_v_str}"')
     if calibration_prior:
         attrs.append(f'xcr:CalibrationPrior="{calibration_prior}"')
     if calibration_group is not None:
         attrs.append(f'xcr:CalibrationGroup="{calibration_group}"')
     if distortion_group is not None:
         attrs.append(f'xcr:DistortionGroup="{distortion_group}"')
-    attrs.append(f'xcr:Rig="{rig_id}"')
-    attrs.append(f'xcr:RigInstance="{rig_instance_id}"')
-    attrs.append(f'xcr:RigPoseIndex="{rig_pose_index}"')
-    attrs.append(f'xcr:InTexturing="{int(bool(in_texturing))}"')
-    attrs.append(f'xcr:InMeshing="{int(bool(in_meshing))}"')
-    attrs.append(f'xcr:InColoring="{int(bool(in_coloring))}"')
+    if rig_id:
+        attrs.append(f'xcr:Rig="{rig_id}"')
+    if rig_instance_id:
+        attrs.append(f'xcr:RigInstance="{rig_instance_id}"')
+    if rig_pose_index is not None:
+        attrs.append(f'xcr:RigPoseIndex="{rig_pose_index}"')
+    if in_texturing is not None:
+        attrs.append(f'xcr:InTexturing="{int(bool(in_texturing))}"')
+    if in_meshing is not None:
+        attrs.append(f'xcr:InMeshing="{int(bool(in_meshing))}"')
+    if in_coloring is not None:
+        attrs.append(f'xcr:InColoring="{int(bool(in_coloring))}"')
     attr_str = " ".join(attrs)
 
-    return (
-        '<x:xmpmeta xmlns:x="adobe:ns:meta/">\n'
-        '  <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">\n'
-        f'    <rdf:Description xmlns:xcr="http://www.capturingreality.com/ns/xcr/1.1#" {attr_str}>\n'
-        f'      <xcr:Position>{position_str}</xcr:Position>\n'
-        '    </rdf:Description>\n'
-        '  </rdf:RDF>\n'
-        '</x:xmpmeta>\n'
-    )
+    lines = [
+        '<x:xmpmeta xmlns:x="adobe:ns:meta/">',
+        '  <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">',
+        f'    <rdf:Description xmlns:xcr="http://www.capturingreality.com/ns/xcr/1.1#" {attr_str}>',
+    ]
+    if position_str:
+        lines.append(f'      <xcr:Position>{position_str}</xcr:Position>')
+    lines.extend([
+        '    </rdf:Description>',
+        '  </rdf:RDF>',
+        '</x:xmpmeta>',
+        '',
+    ])
+    return "\n".join(lines)
