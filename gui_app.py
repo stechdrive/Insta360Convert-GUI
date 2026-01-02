@@ -143,6 +143,7 @@ class Insta360ConvertGUI(tk.Tk):
         self.realityscan_focal_length_var = tk.BooleanVar(value=True)
         self.realityscan_common_xmp_var = tk.BooleanVar(value=False)
         self.realityscan_editor_options_var = tk.BooleanVar(value=True)
+        self.realityscan_distortion_coefficients_alt_var = tk.BooleanVar(value=False)
         self.realityscan_xmp_mode_var = tk.StringVar()
         self.realityscan_rig_id_mode_var = tk.StringVar()
         self.realityscan_rig_id_var = tk.StringVar()
@@ -236,6 +237,7 @@ class Insta360ConvertGUI(tk.Tk):
         self.realityscan_focal_length_var.trace_add("write", self._on_realityscan_option_changed)
         self.realityscan_common_xmp_var.trace_add("write", self._on_realityscan_option_changed)
         self.realityscan_editor_options_var.trace_add("write", self._on_realityscan_option_changed)
+        self.realityscan_distortion_coefficients_alt_var.trace_add("write", self._on_realityscan_option_changed)
         self.update_ui_texts_for_language_switch()
 
         self.update_resolution_options()
@@ -707,6 +709,13 @@ class Insta360ConvertGUI(tk.Tk):
         )
         self.realityscan_editor_options_check.grid(row=6, column=2, columnspan=2, padx=5, pady=2, sticky=tk.W)
 
+        self.realityscan_distortion_coefficients_alt_check = ttk.Checkbutton(
+            self.realityscan_xmp_frame,
+            text="",
+            variable=self.realityscan_distortion_coefficients_alt_var
+        )
+        self.realityscan_distortion_coefficients_alt_check.grid(row=7, column=0, columnspan=4, padx=5, pady=2, sticky=tk.W)
+
         self.realityscan_xmp_frame.columnconfigure(1, weight=1)
         self.realityscan_xmp_frame.columnconfigure(3, weight=1)
 
@@ -945,6 +954,9 @@ class Insta360ConvertGUI(tk.Tk):
         self.realityscan_focal_length_check.config(text=S.get("realityscan_focal_length_label"))
         self.realityscan_common_xmp_check.config(text=S.get("realityscan_common_xmp_label"))
         self.realityscan_editor_options_check.config(text=S.get("realityscan_editor_options_label"))
+        self.realityscan_distortion_coefficients_alt_check.config(
+            text=S.get("realityscan_distortion_coefficients_alt_label")
+        )
         self.colmap_pipeline_header_label.config(text=S.get("colmap_pipeline_label"))
         self.colmap_rig_label.config(text=S.get("colmap_rig_folder_label"))
         self.colmap_exec_label.config(text=S.get("colmap_exec_label"))
@@ -1194,6 +1206,7 @@ class Insta360ConvertGUI(tk.Tk):
         self.add_tooltip_managed(self.realityscan_focal_length_check, "realityscan_focal_length_tooltip")
         self.add_tooltip_managed(self.realityscan_common_xmp_check, "realityscan_common_xmp_tooltip")
         self.add_tooltip_managed(self.realityscan_editor_options_check, "realityscan_editor_options_tooltip")
+        self.add_tooltip_managed(self.realityscan_distortion_coefficients_alt_check, "realityscan_distortion_coefficients_alt_tooltip")
         self.add_tooltip_managed(self.colmap_pipeline_frame, "colmap_pipeline_tooltip")
         self.add_tooltip_managed(self.colmap_rig_label, "colmap_rig_folder_tooltip")
         self.add_tooltip_managed(self.colmap_rig_entry, "colmap_rig_folder_tooltip")
@@ -1680,6 +1693,7 @@ class Insta360ConvertGUI(tk.Tk):
         self.realityscan_focal_length_check.config(state=entry_state)
         self.realityscan_common_xmp_check.config(state=entry_state)
         self.realityscan_editor_options_check.config(state=entry_state)
+        self.realityscan_distortion_coefficients_alt_check.config(state=entry_state)
 
         rig_id_manual = self._get_realityscan_rig_id_mode_key() == "manual"
         self.realityscan_rig_id_entry.config(state=entry_state if enabled and rig_id_manual else tk.DISABLED)
@@ -1743,6 +1757,7 @@ class Insta360ConvertGUI(tk.Tk):
                 "focal_length": True,
                 "common_xmp": False,
                 "editor_options": True,
+                "distortion_coefficients_alt": False,
             },
             "minimal": {
                 "xmp_mode": "draft",
@@ -1753,6 +1768,7 @@ class Insta360ConvertGUI(tk.Tk):
                 "focal_length": True,
                 "common_xmp": False,
                 "editor_options": True,
+                "distortion_coefficients_alt": False,
             },
             "official": {
                 "xmp_mode": "exact",
@@ -1763,6 +1779,7 @@ class Insta360ConvertGUI(tk.Tk):
                 "focal_length": True,
                 "common_xmp": False,
                 "editor_options": True,
+                "distortion_coefficients_alt": False,
             },
             "insta360_ideal": {
                 "xmp_mode": "exact",
@@ -1773,6 +1790,7 @@ class Insta360ConvertGUI(tk.Tk):
                 "focal_length": True,
                 "common_xmp": False,
                 "editor_options": False,
+                "distortion_coefficients_alt": False,
             },
         }
         values = preset_map.get(preset_key)
@@ -1789,6 +1807,7 @@ class Insta360ConvertGUI(tk.Tk):
             self.realityscan_focal_length_var.set(bool(values.get("focal_length", True)))
             self.realityscan_common_xmp_var.set(bool(values.get("common_xmp", False)))
             self.realityscan_editor_options_var.set(bool(values.get("editor_options", True)))
+            self.realityscan_distortion_coefficients_alt_var.set(bool(values.get("distortion_coefficients_alt", False)))
         finally:
             self._realityscan_preset_update_in_progress = prev_update_state
 
@@ -3263,6 +3282,10 @@ class Insta360ConvertGUI(tk.Tk):
                 "focal_length_enabled": bool(self.realityscan_focal_length_var.get()),
                 "common_xmp_enabled": bool(self.realityscan_common_xmp_var.get()),
                 "editor_options_enabled": bool(self.realityscan_editor_options_var.get()),
+                "distortion_coefficients_attr": (
+                    "DistortionCoefficients" if self.realityscan_distortion_coefficients_alt_var.get()
+                    else "DistortionCoeficients"
+                ),
             }
         if self.cuda_fallback_triggered_for_high_res:
             effective_use_cuda = False; self.log_message_ui("log_cuda_fallback_all_cpu", "INFO", is_key=True)
@@ -3338,6 +3361,7 @@ class Insta360ConvertGUI(tk.Tk):
         focal_length_enabled = bool(context.get("focal_length_enabled", True))
         common_xmp_enabled = bool(context.get("common_xmp_enabled", False))
         editor_options_enabled = bool(context.get("editor_options_enabled", True))
+        distortion_coefficients_attr = context.get("distortion_coefficients_attr", "DistortionCoeficients")
 
         images_root = os.path.join(realityscan_images_root(output_folder), rig_name)
         if not os.path.isdir(images_root):
@@ -3403,6 +3427,7 @@ class Insta360ConvertGUI(tk.Tk):
                     distortion_coefficients=(
                         REALITYSCAN_DEFAULT_DISTORTION_COEFFICIENTS if distortion_model else None
                     ),
+                    distortion_coefficients_attr=distortion_coefficients_attr,
                     calibration_prior=calibration_prior,
                     calibration_group=calibration_group,
                     distortion_group=distortion_group,
@@ -3505,6 +3530,7 @@ class Insta360ConvertGUI(tk.Tk):
                     principal_point_v=pp_v_for_frame,
                     distortion_model=distortion_model_for_frame,
                     distortion_coefficients=distortion_coefficients_for_frame,
+                    distortion_coefficients_attr=distortion_coefficients_attr,
                     calibration_prior=calibration_prior_for_frame,
                     calibration_group=calibration_group_for_frame,
                     distortion_group=distortion_group_for_frame,

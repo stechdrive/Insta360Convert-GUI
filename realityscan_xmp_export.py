@@ -271,6 +271,7 @@ def build_xmp_payload(
     principal_point_v,
     distortion_model,
     distortion_coefficients,
+    distortion_coefficients_attr="DistortionCoeficients",
     calibration_prior,
     calibration_group,
     distortion_group,
@@ -297,7 +298,8 @@ def build_xmp_payload(
         attrs.append(f'xcr:DistortionModel="{distortion_model}"')
     if distortion_coefficients is not None:
         distortion_str = " ".join(_format_float(value) for value in distortion_coefficients)
-        attrs.append(f'xcr:DistortionCoeficients="{distortion_str}"')
+        coeff_attr = distortion_coefficients_attr or "DistortionCoeficients"
+        attrs.append(f'xcr:{coeff_attr}="{distortion_str}"')
     if focal_length_35mm is not None:
         focal_str = _format_float(focal_length_35mm)
         attrs.append(f'xcr:FocalLength35mm="{focal_str}"')
