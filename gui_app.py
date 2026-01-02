@@ -997,6 +997,7 @@ class Insta360ConvertGUI(tk.Tk):
             S.get("realityscan_preset_standard"): "standard",
             S.get("realityscan_preset_minimal"): "minimal",
             S.get("realityscan_preset_official"): "official",
+            S.get("realityscan_preset_insta360_ideal"): "insta360_ideal",
             S.get("realityscan_preset_custom"): "custom",
         }
         self.realityscan_preset_key_by_display = dict(self.realityscan_preset_options_map)
@@ -1762,6 +1763,16 @@ class Insta360ConvertGUI(tk.Tk):
                 "focal_length": True,
                 "common_xmp": False,
                 "editor_options": True,
+            },
+            "insta360_ideal": {
+                "xmp_mode": "exact",
+                "coordinates": "relative",
+                "calibration_prior": "locked",
+                "calibration_group": "single",
+                "distortion_model": "division",
+                "focal_length": True,
+                "common_xmp": False,
+                "editor_options": False,
             },
         }
         values = preset_map.get(preset_key)
