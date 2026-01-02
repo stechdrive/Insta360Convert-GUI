@@ -290,8 +290,6 @@ def build_xmp_payload(
     attrs = [f'xcr:Version="{version}"']
     if pose_prior:
         attrs.append(f'xcr:PosePrior="{pose_prior}"')
-    if rotation_str:
-        attrs.append(f'xcr:Rotation="{rotation_str}"')
     if coordinates:
         attrs.append(f'xcr:Coordinates="{coordinates}"')
     if distortion_model:
@@ -336,6 +334,8 @@ def build_xmp_payload(
         '  <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">',
         f'    <rdf:Description xmlns:xcr="http://www.capturingreality.com/ns/xcr/1.1#" {attr_str}>',
     ]
+    if rotation_str:
+        lines.append(f'      <xcr:Rotation>{rotation_str}</xcr:Rotation>')
     if position_str:
         lines.append(f'      <xcr:Position>{position_str}</xcr:Position>')
     lines.extend([
