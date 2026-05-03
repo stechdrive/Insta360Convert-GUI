@@ -4,6 +4,8 @@
 >
 > **[日本語] 3DGS / SfM用途では移行推奨:** フォトグラメトリ、COLMAP、Metashape、3D Gaussian Splatting向けのデータセット作成には、より使いやすく高機能になった [**STechDrive 3DGS Utils**](https://github.com/stechdrive/stechdrive-3dgs-utils) の利用をおすすめします。フレーム抽出、確認、マスク生成、Metashape/COLMAP書き出し、3DGS向け出力までを統合GUIで扱えます。
 
+<img src="img/stechdrive-3dgs-utils-gui.jpg" alt="STechDrive 3DGS Utils GUI screenshot" width="800"/>
+
 **Insta360Convert GUI** is a user-friendly desktop application designed to extract multiple defined perspective views (defined by pitch, yaw, and Field of View) from 360° equirectangular videos and export them as video clips or image sequences. It's a versatile tool for photogrammetry, VR content creation, visual effects, and various other video production workflows. This application supports English and Japanese user interfaces.
 
 **⚠️ Important Prerequisites: This application requires Python (3.9 or newer) and FFmpeg to be installed on your system, along with Tkinter (8.6 or newer, usually included with Python). Please see the "Requirements" section below for details.**
